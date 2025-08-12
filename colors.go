@@ -1,34 +1,22 @@
 package oigiki
 
 import (
-	"regexp"
-
 	"github.com/fatih/color"
 )
 
-type formattag struct {
-	Start, End int
-}
-type formatmatch struct {
-	tags      []formattag
-	targetEnd int
-}
-
-var (
-	/// matches groups of tags, eg `{bold}{green}foobar`
-	taggroupreg = regexp.MustCompile(`(\{[#\w\d/]+\})+`)
-	/// matches each individual tag
-	tagreg = regexp.MustCompile(`(\{[#\w\d/]+\})`)
-)
 var colorMap = map[string]func(a ...interface{}) string{
-	"bold":       color.New(color.Bold).SprintFunc(),
+	"bold":      color.New(color.Bold).SprintFunc(),
+	"underline": color.New(color.Underline).SprintFunc(),
+	"italic":    color.New(color.Italic).SprintFunc(),
+
 	"/bold":      color.New(color.ResetBold).SprintFunc(),
-	"underline":  color.New(color.Underline).SprintFunc(),
-	"/underline": color.New(color.ResetUnderline).SprintFunc(),
-	"italic":     color.New(color.Italic).SprintFunc(),
 	"/italic":    color.New(color.ResetItalic).SprintFunc(),
+	"/underline": color.New(color.ResetUnderline).SprintFunc(),
 	"reset":      color.New(color.Reset).SprintFunc(),
 	"/":          color.New(color.Reset).SprintFunc(),
+
+	"fg": color.New(39).SprintFunc(),
+	"bg": color.New(49).SprintFunc(),
 
 	"red":     color.New(color.FgRed).SprintFunc(),
 	"green":   color.New(color.FgGreen).SprintFunc(),

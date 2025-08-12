@@ -2,11 +2,21 @@ package oigiki
 
 import (
 	"fmt"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/fatih/color"
+)
+
+type formattag struct {
+	Start, End int
+}
+
+var (
+	/// matches each individual tag
+	tagreg = regexp.MustCompile(`(\{[#\w\d/]+\})`)
 )
 
 // processes a tagged string, passing it through fmt.Sprintf before coloring
@@ -75,28 +85,36 @@ func processString(line string) string {
 					if color == prevColor {
 						/// we found our matching color set!
 						/// now move back one more (if possible) and use *that* color
+						/// FIXME: actually find the previous color
+						/// i do NOT want to be 3 loops deep
 						if ii-1 < 0 {
-							/// cant move back
-							color = ""
+							/// cant move back, just reset
+							color = "fg"
+							if strings.HasPrefix(color, "bg") {
+								color = "bg"
+							}
 							break
 						}
 						resetTag := formats[ii-1]
+						print(color+" -> ")
+
 						color = line[resetTag.Start+1 : resetTag.End-1]
+						print(color+"\n")
 						break
 					}
 				}
 			}
 		}
-		formatted := processTag("", color)
+		c := processTag("", color)
 		/// TODO: find a better way to verify we have color?
-		if len(formatted) > 0 {
+		if len(c) > 0 {
 			/// chop off the reset code
 			/// because we're splitting by \x1b, the furst element is empty
-			formatted = "\x1b" + strings.Split(formatted, "\x1b")[1]
+			c = "\x1b" + strings.Split(c, "\x1b")[1]
 		}
-		line = line[:tag.Start] + formatted + line[tag.End:]
+		line = line[:tag.Start] + c + line[tag.End:]
 	}
-	return line
+	return line + "\x1b[0m"
 }
 
 // pass 1:
