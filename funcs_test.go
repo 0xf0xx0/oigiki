@@ -37,7 +37,7 @@ func TestMixed(t *testing.T) {
 }
 
 func TestRGB(t *testing.T) {
-	str := oigiki.ProcessTags("{green}green{bold}boldgreen{#b00b69}{/bold}#b00b69{/#b00b69}greenunderline")
+	str := oigiki.ProcessTags("{green}green{bold}boldgreen{#b00b69}{/bold}#b00b69{underline}{/#b00b69}greenunderline")
 	EXPECTED := ""
 	t.Log(str)
 	if str != EXPECTED {

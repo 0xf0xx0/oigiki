@@ -33,14 +33,12 @@ func TagString(s, color string) string {
 }
 
 // strip format tags (NOT ansi) from line
-// func StripLine(line string) string {
-// 	ret := ""
-// 	for _, format := range selectFormats(line) {
-// 		lastTag := format.tags[len(format.tags)-1]
-// 		ret += line[lastTag.End:format.targetEnd]
-// 	}
-// 	return ret
-// }
+func StripLine(line string) string {
+	for _, tag := range slices.Backward(selectFormats(line)) {
+		line = line[:tag.Start] + line[tag.End:]
+	}
+	return line
+}
 
 func hex2RGB(hex string) (int, int, int) {
 	hex = hex[1:]
@@ -67,9 +65,8 @@ func processTag(s, col string) string {
 // pass 2:
 // process tags in reverse
 func processString(line string) string {
-	formats := selectFormats(line)
-	/// save the target line and update it before substring-replacing
-	for i, tag := range slices.Backward(formats) {
+	tags := selectFormats(line)
+	for i, tag := range slices.Backward(tags) {
 		color := line[tag.Start+1 : tag.End-1] /// {(style)}
 		if strings.HasPrefix(color, "/") {
 			/// if its in the map its one of the ones ansi already has resets for
@@ -80,7 +77,7 @@ func processString(line string) string {
 				/// slice off the leading slash too for exact matching
 				color = color[1:]
 				for ii := i - 1; ii >= 0; ii-- {
-					prevTag := formats[ii]
+					prevTag := tags[ii]
 					prevColor := line[prevTag.Start+1 : prevTag.End-1]
 					if color == prevColor {
 						/// we found our matching color set!
@@ -95,11 +92,10 @@ func processString(line string) string {
 							}
 							break
 						}
-						resetTag := formats[ii-1]
-						print(color+" -> ")
-
+						resetTag := tags[ii-1]
+						print(color + " -> ")
 						color = line[resetTag.Start+1 : resetTag.End-1]
-						print(color+"\n")
+						print(color + "\n")
 						break
 					}
 				}
