@@ -20,9 +20,9 @@ type formatmatch struct {
 
 var (
 	/// matches groups of tags, eg `{bold}{green}foobar`
-	taggroupreg = regexp.MustCompile(`(\{[#\w\d]+\})+`)
+	taggroupreg = regexp.MustCompile(`(\{[#\w\d/]+\})+`)
 	/// matches each individual tag
-	tagreg = regexp.MustCompile(`(\{[#\w\d]+\})`)
+	tagreg = regexp.MustCompile(`(\{[#\w\d/]+\})`)
 )
 var colorMap = map[string]func(a ...interface{}) string{
 	"bold":      color.New(color.Bold).SprintFunc(),
@@ -78,7 +78,7 @@ func TagString(s, color string) string {
 	if s == "" {
 		return s
 	}
-	return fmt.Sprintf("{%s}%s", color, s)
+	return "{"+color+"}"+s
 }
 
 // strip format tags (NOT ansi) from line
@@ -112,9 +112,11 @@ func processTag(s, col string) string {
 	}
 	return s
 }
-
+// pass 2
+// process tags in reverse
 func processString(line string) string {
 	formats := selectFormats(line)
+	/// TODO: slices.Backward
 	slices.Reverse(formats)
 	/// find+replace in reverse to avoid indexes jumping around
 	for _, fmt := range formats {
@@ -122,11 +124,12 @@ func processString(line string) string {
 		/// save tags before flippin the array
 		furstTag := tags[0]
 		lastTag := tags[len(tags)-1]
+		/// TODO: slices.Backward
 		slices.Reverse(tags)
 		/// save the target line and update it before substring-replacing
 		formatted := line[lastTag.End:fmt.targetEnd]
 		for _, tag := range tags {
-			color := line[tag.Start+1 : tag.End-1] /// {(color)}
+			color := line[tag.Start+1 : tag.End-1] /// {(style)}
 			formatted = processTag(formatted, color)
 		}
 		line = line[:furstTag.Start] + formatted + line[fmt.targetEnd:]
@@ -134,6 +137,7 @@ func processString(line string) string {
 	return line
 }
 
+// pass 1
 // finds format tags by regex, matching them and their target end idx
 func selectFormats(line string) []formatmatch {
 	indices := taggroupreg.FindAllStringIndex(line, -1)
