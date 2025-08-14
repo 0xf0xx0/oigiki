@@ -20,5 +20,4 @@ everything fatih/color supports, with rgb as hex
     see: TestRGB
 ## todo
 - better processing?
-- reset specific colors? (might need a pr to fatih/color)
 - rgb tagging? `{r,g,b}`?
