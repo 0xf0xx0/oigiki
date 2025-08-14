@@ -1,7 +1,6 @@
 package oigiki
 
 import (
-	"fmt"
 	"regexp"
 	"slices"
 	"strconv"
@@ -20,8 +19,8 @@ var (
 )
 
 // processes a tagged string, passing it through fmt.Sprintf before coloring
-func ProcessTags(s string, a ...any) string {
-	return processString(fmt.Sprintf(s, a...))
+func ProcessTags(s string) string {
+	return processString(s)
 }
 
 // add a format tag to a string
