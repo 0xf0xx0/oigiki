@@ -1,0 +1,25 @@
+=== RUN   TestProcessTags
+    funcs_test.go:15: [31mred[32mgreen[34mblue[0m
+--- PASS: TestProcessTags (0.00s)
+=== RUN   TestUnset
+green -> red
+    funcs_test.go:24: [31mred[32mgreen[31mred[0m
+--- PASS: TestUnset (0.00s)
+=== RUN   TestMixed
+    funcs_test.go:33: [32mgreen[1mboldgreen[34m[22mblue[4mblueunderline[0m
+--- PASS: TestMixed (0.00s)
+=== RUN   TestRGB
+#b00b69 -> bold
+    funcs_test.go:42: [32mgreen[1mboldgreen[38;2;176;11;105m[22m#b00b69[4m[1mgreenunderline[0m
+    funcs_test.go:44: MISMATCH: "" "\x1b[32mgreen\x1b[1mboldgreen\x1b[38;2;176;11;105m\x1b[22m#b00b69\x1b[4m\x1b[1mgreenunderline\x1b[0m"
+--- FAIL: TestRGB (0.00s)
+=== RUN   TestHell
+    funcs_test.go:51: [31mred[1mboldred[4mboldredunderline[22mredunderline[39munderline[24m[0m
+--- PASS: TestHell (0.00s)
+=== RUN   TestFunnyQuirk
+blue -> green
+    funcs_test.go:59: [32m1 text [34m2 test [31mred text[32mbloo... wait no green?[0m
+--- PASS: TestFunnyQuirk (0.00s)
+FAIL
+exit status 1
+FAIL	github.com/0xf0xx0/oigiki	0.002s

@@ -7,7 +7,7 @@ uses https://github.com/fatih/color
 ```go
 /// coloring will run till the next tag
 /// chaining works too uwu
-oigiki.ProcessTags("{bgwhite}{black}hello{reset} {#b00b69}world!") /// "\x1b[31mhello \x1b[0m\x1b[38;2;176;11;105mworld!\x1b[0;22;0;0;0m"
+oigiki.ProcessTags("{red}red{green}green{/green}red") /// "\x1b[31mred\x1b[32mgreen\x1b[31mred\x1b[0m"
 oigiki.TagString("this should be red", "red") /// "{red}this should be red"
 oigiki.StripLine("{red}{bold}whos that {bg#f100f1}{underline}knockin{/underline} at my door?") /// whos that knockin at my door?
 ```
@@ -15,6 +15,9 @@ oigiki.StripLine("{red}{bold}whos that {bg#f100f1}{underline}knockin{/underline}
 ### supported colors
 everything fatih/color supports, with rgb as hex
 
+## known issues
+- color untagging resets to the nearest style, no matter what
+    see: TestRGB
 ## todo
 - better processing?
 - reset specific colors? (might need a pr to fatih/color)
