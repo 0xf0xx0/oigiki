@@ -18,17 +18,17 @@ var (
 	tagreg = regexp.MustCompile(`(\{[#\w\d/]+\})`)
 )
 
-// processes a tagged string, passing it through fmt.Sprintf before coloring
+// processes a tagged string into ansi
 func ProcessTags(s string) string {
 	return processString(s)
 }
 
 // add a format tag to a string
-func TagString(s, color string) string {
+func TagString(s, tag string) string {
 	if s == "" {
 		return s
 	}
-	return "{" + color + "}" + s
+	return "{" + tag + "}" + s
 }
 
 // strip format tags (NOT ansi) from line
