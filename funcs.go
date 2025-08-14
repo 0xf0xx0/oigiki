@@ -92,9 +92,9 @@ func processString(line string) string {
 							break
 						}
 						resetTag := tags[ii-1]
-						print(color + " -> ")
+						// print(color + " -> ")
 						color = line[resetTag.Start+1 : resetTag.End-1]
-						print(color + "\n")
+						// print(color + "\n")
 						break
 					}
 				}
