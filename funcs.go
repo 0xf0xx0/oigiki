@@ -9,10 +9,6 @@ import (
 	"github.com/fatih/color"
 )
 
-type formattag struct {
-	Start, End int
-}
-
 var (
 	/// matches each individual tag
 	tagreg = regexp.MustCompile(`(\{[#\w\d/]+\})`)
@@ -33,8 +29,8 @@ func TagString(s, tag string) string {
 
 // strip format tags (NOT ansi) from line
 func StripLine(line string) string {
-	for _, tag := range slices.Backward(selectFormats(line)) {
-		line = line[:tag.Start] + line[tag.End:]
+	for _, tag := range slices.Backward(tagreg.FindAllStringIndex(line, -1)) {
+		line = line[:tag[0]] + line[tag[1]:]
 	}
 	return line
 }
@@ -61,12 +57,12 @@ func processTag(s, col string) string {
 	return s
 }
 
-// pass 2:
-// process tags in reverse
+// finds format tags by regex,
+// then process tags in reverse
 func processString(line string) string {
-	tags := selectFormats(line)
+	tags := tagreg.FindAllStringIndex(line, -1)
 	for i, tag := range slices.Backward(tags) {
-		color := line[tag.Start+1 : tag.End-1] /// {(style)}
+		color := line[tag[0]+1 : tag[1]-1] /// {(style)}
 		if strings.HasPrefix(color, "/") {
 			/// if its in the map its one of the ones ansi already has resets for
 			/// we only process colors
@@ -77,7 +73,7 @@ func processString(line string) string {
 				color = color[1:]
 				for ii := i - 1; ii >= 0; ii-- {
 					prevTag := tags[ii]
-					prevColor := line[prevTag.Start+1 : prevTag.End-1]
+					prevColor := line[prevTag[0]+1 : prevTag[1]-1]
 					if color == prevColor {
 						/// we found our matching color set!
 						/// now move back one more (if possible) and use *that* color
@@ -93,7 +89,7 @@ func processString(line string) string {
 						}
 						resetTag := tags[ii-1]
 						// print(color + " -> ")
-						color = line[resetTag.Start+1 : resetTag.End-1]
+						color = line[resetTag[0]+1 : resetTag[1]-1]
 						// print(color + "\n")
 						break
 					}
@@ -107,18 +103,7 @@ func processString(line string) string {
 			/// because we're splitting by \x1b, the furst element is empty
 			c = "\x1b" + strings.Split(c, "\x1b")[1]
 		}
-		line = line[:tag.Start] + c + line[tag.End:]
+		line = line[:tag[0]] + c + line[tag[1]:]
 	}
 	return line + "\x1b[0m"
-}
-
-// pass 1:
-// finds format tags by regex, returning their position in the string
-func selectFormats(line string) []formattag {
-	tagIndices := tagreg.FindAllStringIndex(line, -1)
-	tags := make([]formattag, len(tagIndices))
-	for i, tag := range tagIndices {
-		tags[i] = formattag{Start: tag[0], End: tag[1]}
-	}
-	return tags
 }
