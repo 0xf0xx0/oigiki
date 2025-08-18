@@ -13,7 +13,6 @@ var colorMap = map[string]func(a ...interface{}) string{
 	"/italic":    color.New(color.ResetItalic).SprintFunc(),
 	"/underline": color.New(color.ResetUnderline).SprintFunc(),
 	"reset":      color.New(color.Reset).SprintFunc(),
-	"/":          color.New(color.Reset).SprintFunc(),
 
 	"fg": color.New(39).SprintFunc(),
 	"bg": color.New(49).SprintFunc(),
