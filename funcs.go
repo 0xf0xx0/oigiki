@@ -16,7 +16,73 @@ var (
 
 // processes a tagged string into ansi
 func ProcessTags(s string) string {
-	return processString(s)
+	if color.NoColor {
+		return StripLine(s)
+	}
+	/// we can safely assume we have color
+	out := strings.Builder{} /// TODO: can we avoid this?
+	out.Grow(len(s))
+	tag := strings.Builder{}
+	collectingTag := false
+	seenTags := make([]string, 1, 8) /// 8 should be plenty for most cases
+	seenTags[0] = "fg"               /// see TestDefaultUnset
+	for _, char := range s {
+		if char == '{' {
+			if collectingTag {
+				panic("tag inside a tag")
+			}
+			collectingTag = true
+			continue
+		}
+		if char == '}' && collectingTag {
+			tagStr := tag.String()
+			color := processTag("", tagStr)
+
+			/// processTag checks the color map for the tag
+			/// if its in the map its one of the ones ansi already has resets for,
+			/// and color will be populated
+			/// we only process closing color tags
+			if color == "" && tagStr[0] == '/' {
+				/// find the corresponding opening tag
+				idx := slices.Index(seenTags, tagStr[1:])
+				if idx > -1 {
+					/// remove the opening tag from our seen list so it doesnt get picked again
+					seenTags = append(seenTags[:idx], seenTags[idx+1:]...)
+					/// if its not the last seen tag, select the last seen tag to reset to
+					/// see TestUnset and TestDefaultUnset
+					l := len(seenTags) - 1
+					if idx != l {
+						color = processTag("", seenTags[l])
+					}
+					/// no-op, if idx == l its already the active tag and doesnt need re-applying
+					/// see TestUnset2
+				}
+				/// no-op
+			}
+			/// also no-op, for unknown tags
+
+			if color != "" {
+				out.WriteString("\x1b")
+				out.WriteString(strings.Split(color, "\x1b")[1])
+			}
+			/// i dont like thissssssssssssssssssssssss
+			/// TODO: make a way to just ignore non-color tags
+			if tagStr[0] != '/' && tagStr != "bold" && tagStr != "underline" && tagStr != "italic" {
+				seenTags = append(seenTags, tagStr)
+			}
+			tag.Reset()
+			collectingTag = false
+			continue
+		}
+		if collectingTag {
+			tag.WriteRune(char)
+		} else {
+			out.WriteRune(char)
+		}
+	}
+	/// reset
+	out.WriteString("\x1b[0m")
+	return out.String()
 }
 
 // add a format tag to a string
@@ -44,66 +110,15 @@ func hex2RGB(hex string) (int, int, int) {
 }
 
 func processTag(s, col string) string {
-	if strings.HasPrefix(col, "#") {
+	if col[0] == '#' {
 		/// hex code
 		return color.RGB(hex2RGB(col)).Sprint(s)
 	}
-	if strings.HasPrefix(col, "bg#") {
+	if col[0] == 'b' && col[1] == 'g' && col[2] == '#' {
 		return color.BgRGB(hex2RGB(col[2:])).Sprint(s)
 	}
 	if fn, ok := colorMap[col]; ok {
 		return fn(s)
 	}
 	return s
-}
-
-// finds format tags by regex,
-// then process tags in reverse
-func processString(line string) string {
-	tags := tagreg.FindAllStringIndex(line, -1)
-	for i, tag := range slices.Backward(tags) {
-		color := line[tag[0]+1 : tag[1]-1] /// {(style)}
-		if strings.HasPrefix(color, "/") {
-			/// if its in the map its one of the ones ansi already has resets for
-			/// we only process colors
-			if _, ok := colorMap[color]; !ok {
-				/// look ahead (behind?) and find the previous color in the string
-				/// to reset to
-				/// slice off the leading slash too for exact matching
-				color = color[1:]
-				for ii := i - 1; ii >= 0; ii-- {
-					prevTag := tags[ii]
-					prevColor := line[prevTag[0]+1 : prevTag[1]-1]
-					if color == prevColor {
-						/// we found our matching color set!
-						/// now move back one more (if possible) and use *that* color
-						/// FIXME: actually find the previous color
-						/// i do NOT want to be 3 loops deep
-						if ii-1 < 0 {
-							/// cant move back, just reset
-							color = "fg"
-							if strings.HasPrefix(color, "bg") {
-								color = "bg"
-							}
-							break
-						}
-						resetTag := tags[ii-1]
-						// print(color + " -> ")
-						color = line[resetTag[0]+1 : resetTag[1]-1]
-						// print(color + "\n")
-						break
-					}
-				}
-			}
-		}
-		c := processTag("", color)
-		/// TODO: find a better way to verify we have color?
-		if len(c) > 0 {
-			/// chop off the reset code
-			/// because we're splitting by \x1b, the furst element is empty
-			c = "\x1b" + strings.Split(c, "\x1b")[1]
-		}
-		line = line[:tag[0]] + c + line[tag[1]:]
-	}
-	return line + "\x1b[0m"
 }
