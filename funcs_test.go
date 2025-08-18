@@ -72,6 +72,6 @@ func log(t *testing.T, str string, EXPECTED string) {
 	processed := oigiki.ProcessTags(str)
 	t.Log(processed)
 	if processed != EXPECTED {
-		t.Errorf("MISMATCH:\nEXPECTED: %s %q\nGOT: %s %q", EXPECTED, EXPECTED, processed, processed)
+		t.Errorf("MISMATCH:\nEXP: %s %q\nGOT: %s %q", EXPECTED, EXPECTED, processed, processed)
 	}
 }

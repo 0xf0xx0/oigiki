@@ -1,6 +1,7 @@
 package oigiki
 
 import (
+	"container/list"
 	"regexp"
 	"slices"
 	"strconv"
@@ -24,8 +25,8 @@ func ProcessTags(s string) string {
 	out.Grow(len(s))
 	tag := strings.Builder{}
 	collectingTag := false
-	seenTags := make([]string, 1, 8) /// 8 should be plenty for most cases
-	seenTags[0] = "fg"               /// see TestDefaultUnset
+	seenTags := list.New()
+	seenTags.PushBack("fg") /// see TestDefaultUnset
 	for _, char := range s {
 		if char == '{' {
 			if collectingTag {
@@ -36,7 +37,10 @@ func ProcessTags(s string) string {
 		}
 		if char == '}' && collectingTag {
 			tagStr := tag.String()
-			color := processTag("", tagStr)
+			color := ""
+			if tagStr != "" {
+				color = processTag("", tagStr)
+			}
 
 			/// processTag checks the color map for the tag
 			/// if its in the map its one of the ones ansi already has resets for,
@@ -44,15 +48,17 @@ func ProcessTags(s string) string {
 			/// we only process closing color tags
 			if color == "" && tagStr[0] == '/' {
 				/// find the corresponding opening tag
-				idx := slices.Index(seenTags, tagStr[1:])
-				if idx > -1 {
+				e := findListElm(seenTags, tagStr[1:])
+				if e != nil {
 					/// remove the opening tag from our seen list so it doesnt get picked again
-					seenTags = append(seenTags[:idx], seenTags[idx+1:]...)
+					nextE := e.Next() /// but we need to grab the next element for the check below
+					seenTags.Remove(e)
+					e = nextE
 					/// if its not the last seen tag, select the last seen tag to reset to
 					/// see TestUnset and TestDefaultUnset
-					l := len(seenTags) - 1
-					if idx != l {
-						color = processTag("", seenTags[l])
+					l := seenTags.Back()
+					if e != l {
+						color = processTag("", l.Value.(string))
 					}
 					/// no-op, if idx == l its already the active tag and doesnt need re-applying
 					/// see TestUnset2
@@ -68,7 +74,7 @@ func ProcessTags(s string) string {
 			/// i dont like thissssssssssssssssssssssss
 			/// TODO: make a way to just ignore non-color tags
 			if tagStr[0] != '/' && tagStr != "bold" && tagStr != "underline" && tagStr != "italic" {
-				seenTags = append(seenTags, tagStr)
+				seenTags.PushBack(tagStr)
 			}
 			tag.Reset()
 			collectingTag = false
@@ -121,4 +127,25 @@ func processTag(s, col string) string {
 		return fn(s)
 	}
 	return s
+}
+
+func findListElm(ls *list.List, search string) *list.Element {
+	if ls.Len() == 0 {
+		return nil
+	}
+	e := ls.Front()
+	l := ls.Back()
+	for {
+		if (e == l) || (e == nil && l == nil) {
+			return nil
+		}
+		if e.Value == search {
+			return e
+		}
+		if l.Value == search {
+			return l
+		}
+		e = e.Next()
+		l = l.Prev()
+	}
 }
