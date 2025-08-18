@@ -12,7 +12,7 @@ import (
 
 var (
 	/// matches each individual tag
-	tagreg = regexp.MustCompile(`(\{[#\w\d/]+\})`)
+	tagreg = regexp.MustCompile(`(\{.+?\})`)
 )
 
 // processes a tagged string into ansi
@@ -21,7 +21,7 @@ func ProcessTags(s string) string {
 		return StripLine(s)
 	}
 	/// we can safely assume we have color
-	out := strings.Builder{} /// TODO: can we avoid this?
+	out := strings.Builder{} /// TODO: can we mutate `s`?
 	out.Grow(len(s))
 	tag := strings.Builder{}
 	collectingTag := false
