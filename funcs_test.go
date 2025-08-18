@@ -23,7 +23,7 @@ func TestUnset(t *testing.T) {
 	log(t, str, EXPECTED)
 }
 
-func TestUnset2(t *testing.T) {
+func TestUnsetNesting(t *testing.T) {
 	str := "{red}red{green}{blue}{underline}blue{/underline}{/green}{/red}blue"
 	EXPECTED := "\x1b[31mred\x1b[32m\x1b[34m\x1b[4mblue\x1b[24mblue\x1b[0m"
 	log(t, str, EXPECTED)
@@ -35,7 +35,7 @@ func TestDefaultUnset(t *testing.T) {
 	log(t, str, EXPECTED)
 }
 
-func TestMixed(t *testing.T) {
+func TestOverlap(t *testing.T) {
 	str := "{green}green{bold}boldgreen{blue}{/bold}blue{underline}blueunderline"
 	EXPECTED := "\x1b[32mgreen\x1b[1mboldgreen\x1b[34m\x1b[22mblue\x1b[4mblueunderline\x1b[0m"
 	log(t, str, EXPECTED)
@@ -53,9 +53,14 @@ func TestHell(t *testing.T) {
 	log(t, str, EXPECTED)
 }
 
-func TestRobustness(t *testing.T) {
+func TestExtraTagTerminators(t *testing.T) {
 	str := "{red}}{green}}{blue}}"
 	EXPECTED := "\x1b[31m}\x1b[32m}\x1b[34m}\x1b[0m"
+	log(t, str, EXPECTED)
+}
+func TestUnterminatedTag(t *testing.T) {
+	str := "{red"
+	EXPECTED := "\x1b[0m"
 	log(t, str, EXPECTED)
 }
 
