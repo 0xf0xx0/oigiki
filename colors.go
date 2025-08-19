@@ -1,55 +1,67 @@
 package oigiki
 
 import (
+	"strconv"
+
 	"github.com/fatih/color"
 )
 
-var colorMap = map[string]func(a ...interface{}) string{
-	"bold":      color.New(color.Bold).SprintFunc(),
-	"underline": color.New(color.Underline).SprintFunc(),
-	"italic":    color.New(color.Italic).SprintFunc(),
+var colorEscapeCodes = map[string]string{
+	"reset": getAnsiCode(color.Reset),
+	"fg":    getAnsiCode(39),
+	"bg":    getAnsiCode(49),
 
-	"/bold":      color.New(color.ResetBold).SprintFunc(),
-	"/italic":    color.New(color.ResetItalic).SprintFunc(),
-	"/underline": color.New(color.ResetUnderline).SprintFunc(),
-	"reset":      color.New(color.Reset).SprintFunc(),
+	"red":     getAnsiCode(color.FgRed),
+	"green":   getAnsiCode(color.FgGreen),
+	"blue":    getAnsiCode(color.FgBlue),
+	"yellow":  getAnsiCode(color.FgYellow),
+	"cyan":    getAnsiCode(color.FgCyan),
+	"magenta": getAnsiCode(color.FgMagenta),
+	"white":   getAnsiCode(color.FgWhite),
+	"black":   getAnsiCode(color.FgBlack),
 
-	"fg": color.New(39).SprintFunc(),
-	"bg": color.New(49).SprintFunc(),
+	"redbright":     getAnsiCode(color.FgHiRed),
+	"greenbright":   getAnsiCode(color.FgHiGreen),
+	"bluebright":    getAnsiCode(color.FgHiBlue),
+	"yellowbright":  getAnsiCode(color.FgHiYellow),
+	"cyanbright":    getAnsiCode(color.FgHiCyan),
+	"magentabright": getAnsiCode(color.FgHiMagenta),
+	"whitebright":   getAnsiCode(color.FgHiWhite),
+	"blackbright":   getAnsiCode(color.FgHiBlack),
 
-	"red":     color.New(color.FgRed).SprintFunc(),
-	"green":   color.New(color.FgGreen).SprintFunc(),
-	"blue":    color.New(color.FgBlue).SprintFunc(),
-	"yellow":  color.New(color.FgYellow).SprintFunc(),
-	"cyan":    color.New(color.FgCyan).SprintFunc(),
-	"magenta": color.New(color.FgMagenta).SprintFunc(),
-	"white":   color.New(color.FgWhite).SprintFunc(),
-	"black":   color.New(color.FgBlack).SprintFunc(),
+	"bgred":     getAnsiCode(color.BgRed),
+	"bggreen":   getAnsiCode(color.BgGreen),
+	"bgblue":    getAnsiCode(color.BgBlue),
+	"bgyellow":  getAnsiCode(color.BgYellow),
+	"bgcyan":    getAnsiCode(color.BgCyan),
+	"bgmagenta": getAnsiCode(color.BgMagenta),
+	"bgwhite":   getAnsiCode(color.BgWhite),
+	"bgblack":   getAnsiCode(color.BgBlack),
 
-	"redbright":     color.New(color.FgHiRed).SprintFunc(),
-	"greenbright":   color.New(color.FgHiGreen).SprintFunc(),
-	"bluebright":    color.New(color.FgHiBlue).SprintFunc(),
-	"yellowbright":  color.New(color.FgHiYellow).SprintFunc(),
-	"cyanbright":    color.New(color.FgHiCyan).SprintFunc(),
-	"magentabright": color.New(color.FgHiMagenta).SprintFunc(),
-	"whitebright":   color.New(color.FgHiWhite).SprintFunc(),
-	"blackbright":   color.New(color.FgHiBlack).SprintFunc(),
+	"bgredbright":     getAnsiCode(color.BgHiRed),
+	"bggreenbright":   getAnsiCode(color.BgHiGreen),
+	"bgbluebright":    getAnsiCode(color.BgHiBlue),
+	"bgyellowbright":  getAnsiCode(color.BgHiYellow),
+	"bgcyanbright":    getAnsiCode(color.BgHiCyan),
+	"bgmagentabright": getAnsiCode(color.BgHiMagenta),
+	"bgwhitebright":   getAnsiCode(color.BgHiWhite),
+	"bgblackbright":   getAnsiCode(color.BgHiBlack),
+}
 
-	"bgred":     color.New(color.BgRed).SprintFunc(),
-	"bggreen":   color.New(color.BgGreen).SprintFunc(),
-	"bgblue":    color.New(color.BgBlue).SprintFunc(),
-	"bgyellow":  color.New(color.BgYellow).SprintFunc(),
-	"bgcyan":    color.New(color.BgCyan).SprintFunc(),
-	"bgmagenta": color.New(color.BgMagenta).SprintFunc(),
-	"bgwhite":   color.New(color.BgWhite).SprintFunc(),
-	"bgblack":   color.New(color.BgBlack).SprintFunc(),
+var italicEscapeCodes = map[string]string{
+	"italic":  getAnsiCode(color.Italic),
+	"/italic": getAnsiCode(color.ResetItalic),
+}
+var boldEscapeCodes = map[string]string{
+	"bold":  getAnsiCode(color.Bold),
+	"/bold": getAnsiCode(color.ResetBold),
+}
 
-	"bgredbright":     color.New(color.BgHiRed).SprintFunc(),
-	"bggreenbright":   color.New(color.BgHiGreen).SprintFunc(),
-	"bgbluebright":    color.New(color.BgHiBlue).SprintFunc(),
-	"bgyellowbright":  color.New(color.BgHiYellow).SprintFunc(),
-	"bgcyanbright":    color.New(color.BgHiCyan).SprintFunc(),
-	"bgmagentabright": color.New(color.BgHiMagenta).SprintFunc(),
-	"bgwhitebright":   color.New(color.BgHiWhite).SprintFunc(),
-	"bgblackbright":   color.New(color.BgHiBlack).SprintFunc(),
+var underlineEscapeCodes = map[string]string{
+	"underline":  getAnsiCode(color.Underline),
+	"/underline": getAnsiCode(color.ResetUnderline),
+}
+
+func getAnsiCode(c color.Attribute) string {
+	return "\x1b[" + strconv.Itoa(int(c)) + "m"
 }
