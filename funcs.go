@@ -114,6 +114,7 @@ func getRGBEscapeCode(tagName string) (string, bool) {
 		return "", false
 	}
 
+	/// is this actually faster than just a printf? seems negligible
 	ret := strings.Builder{}
 	ret.Grow(19) /// the full rgb sequence will never be longer than 19 bytes
 	ret.WriteString("\x1b[")
@@ -195,6 +196,7 @@ func GetTagEscapeCode(tagName string) (string, TagType) {
 // process a tagged string into ansi
 func ProcessTags(input string) string {
 	s := strings.Builder{}
+	s.Grow(len(input))
 
 	// A list of colors that have been pushed via opening tags. Closing tags will pop the most recently-pushed entry of that name from the stack
 	//
