@@ -42,8 +42,18 @@ func TestOverlap(t *testing.T) {
 }
 
 func TestRGB(t *testing.T) {
-	str := "{green}green{bold}boldgreen{#b00b69}{/bold}#b00b69{underline}{/#b00b69}greenunderline"
-	EXPECTED := "\x1b[32mgreen\x1b[1mboldgreen\x1b[38;2;176;11;105m\x1b[22m#b00b69\x1b[4m\x1b[32mgreenunderline\x1b[0m"
+	str := "{#b00b69}#b00b69{/#b00b69}"
+	EXPECTED := "\x1b[38;2;176;11;105m#b00b69\x1b[39m\x1b[0m"
+	log(t, str, EXPECTED)
+}
+func TestBG(t *testing.T) {
+	str := "{black}{bgred}oi{bggreen}gi{bgblue}ki{/}{yellow}!"
+	EXPECTED := "\x1b[30m\x1b[41moi\x1b[42mgi\x1b[44mki\x1b[0m\x1b[33m!\x1b[0m"
+	log(t, str, EXPECTED)
+}
+func TestRGBBG(t *testing.T) {
+	str := "{#000000}{bg#ff0000}oi{bg#00ff00}gi{bg#0000ff}ki{/}{#ffff00}!"
+	EXPECTED := "\x1b[38;2;0;0;0m\x1b[48;2;255;0;0moi\x1b[48;2;0;255;0mgi\x1b[48;2;0;0;255mki\x1b[0m\x1b[38;2;255;255;0m!\x1b[0m"
 	log(t, str, EXPECTED)
 }
 
@@ -63,6 +73,21 @@ func TestUnterminatedTag(t *testing.T) {
 	EXPECTED := "\x1b[0m"
 	log(t, str, EXPECTED)
 }
+func TestRandomClosingTag(t *testing.T) {
+	str := "{red}red{/blue}red"
+	EXPECTED := "\x1b[31mredred\x1b[0m"
+	log(t, str, EXPECTED)
+}
+func TestInvalidTag(t *testing.T) {
+	str := "{blue}blue{snuffleupagus}blue"
+	EXPECTED := "\x1b[34mblueblue\x1b[0m"
+	log(t, str, EXPECTED)
+}
+func TestRedundantTag(t *testing.T) {
+	str := "{green}green{green}green{/green}"
+	EXPECTED := "\x1b[32mgreengreen\x1b[0m"
+	log(t, str, EXPECTED)
+}
 
 func BenchmarkProcessing(b *testing.B) {
 	str := "{red}red{bold}boldred{underline}bold{green}greenunderline{/bold}{red}redunderline{/red}greenunderline{/underline}" +
@@ -75,7 +100,7 @@ func BenchmarkProcessing(b *testing.B) {
 func log(t *testing.T, str string, EXPECTED string) {
 	t.Logf("input: %q", str)
 	processed := oigiki.ProcessTags(str)
-	t.Log(processed)
+	t.Logf("output: %s", processed)
 	if processed != EXPECTED {
 		t.Errorf("MISMATCH:\nEXP: %s %q\nGOT: %s %q", EXPECTED, EXPECTED, processed, processed)
 	}

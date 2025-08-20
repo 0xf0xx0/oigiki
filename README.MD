@@ -1,7 +1,8 @@
 # oigiki
 
-ansi color tagging lib, extracted from [axefetch](https://github.com/0xf0xx0/axefetch)  
-uses https://github.com/fatih/color
+ansi color tagging lib, similar to [blessed](https://github.com/chjj/blessed) from node  
+uses https://github.com/fatih/color  
+extracted from [axefetch](https://github.com/0xf0xx0/axefetch)
 
 ## usage
 ```go

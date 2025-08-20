@@ -7,7 +7,6 @@ import (
 )
 
 var colorEscapeCodes = map[string]string{
-	"reset": getAnsiCode(color.Reset),
 	"fg":    getAnsiCode(39),
 	"bg":    getAnsiCode(49),
 

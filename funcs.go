@@ -1,7 +1,7 @@
+// ansi color tagging system similar to blessed from node
 package oigiki
 
 import (
-	"fmt"
 	"regexp"
 	"slices"
 	"strconv"
@@ -76,11 +76,12 @@ func validateRgbString(input string) bool {
 	if input[0] != '#' {
 		return false
 	}
-	if len(input) != 7 {
+	l := len(input)
+	if l != 7 {
 		return false
 	}
 
-	for i := 1; i < len(input); i++ {
+	for i := 1; i < l; i++ {
 		char := input[i]
 		if !(char >= 'a' && char <= 'f') && !(char >= '0' && char <= '9') {
 			return false
@@ -90,6 +91,12 @@ func validateRgbString(input string) bool {
 	return true
 }
 func getRGBEscapeCode(tagName string) (string, bool) {
+	code := 38 // fg rgb
+	/// matches "bg#hexhex"
+	if tagName[0] == 'b' {
+		tagName = tagName[2:]
+		code = 48 // bg rgb
+	}
 	if !validateRgbString(tagName) {
 		return "", false
 	}
@@ -107,17 +114,30 @@ func getRGBEscapeCode(tagName string) (string, bool) {
 		return "", false
 	}
 
-	return fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b), true
+	ret := strings.Builder{}
+	ret.Grow(19) /// the full rgb sequence will never be longer than 19 bytes
+	ret.WriteString("\x1b[")
+	ret.WriteString(strconv.Itoa(code))
+	ret.WriteString(";2;")
+	ret.WriteString(strconv.Itoa(int(r)))
+	ret.WriteString(";")
+	ret.WriteString(strconv.Itoa(int(g)))
+	ret.WriteString(";")
+	ret.WriteString(strconv.Itoa(int(b)))
+	ret.WriteString("m")
+	return ret.String(), true
 }
 func getResetEscapeCode(tagName string) (string, bool) {
-	if tagName == "/" {
+	if tagName == "/" || tagName == "reset" {
 		return eSCAPE_CODE_RESET, true
 	} else {
 		return "", false
 	}
 }
 func getColorEscapeCode(tagName string) (string, bool) {
-	tagName = strings.TrimPrefix(tagName, "/")
+	if tagName[0] == '/' {
+		tagName = tagName[1:]
+	}
 	// Try a known color name
 	escapeCode, ok := colorEscapeCodes[tagName]
 	if ok {
@@ -140,6 +160,9 @@ func getUnderlineEscapeCode(tagName string) (string, bool) {
 	escapeCode, ok := underlineEscapeCodes[tagName]
 	return escapeCode, ok
 }
+
+// this might be useful, maybe for rgb?
+// returns the ansi escape code for a tag (and its type)
 func GetTagEscapeCode(tagName string) (string, TagType) {
 	escapeCode, ok := getResetEscapeCode(tagName)
 	if ok {
@@ -169,13 +192,15 @@ func GetTagEscapeCode(tagName string) (string, TagType) {
 	return "", TagTypeUnknown
 }
 
+// process a tagged string into ansi
 func ProcessTags(input string) string {
 	s := strings.Builder{}
 
 	// A list of colors that have been pushed via opening tags. Closing tags will pop the most recently-pushed entry of that name from the stack
-	var colorEscapeCodeStack []string
+	//
+	var colorEscapeCodeStack = []string{colorEscapeCodes["bg"], colorEscapeCodes["fg"]}
 	// The last-written color; used to prevent redundant writes
-	var lastColorEscapeCode string
+	var lastColorEscapeCode = colorEscapeCodes["fg"]
 	// A list of "decoration flags"; used to track redundant calls to decoration flag tags
 	var decorationFlags decorationFlags
 
@@ -197,28 +222,27 @@ func ProcessTags(input string) string {
 
 		tagEscapeCode, tagType := GetTagEscapeCode(tagName)
 		switch tagType {
+		case TagTypeReset:
+			{
+				s.WriteString(tagEscapeCode)
+			}
 		case TagTypeColor:
 			if isOpeningTag(tagName) {
 				// Push the escape code to the stack and write it to the output if needed
 				colorEscapeCodeStack = append(colorEscapeCodeStack, tagEscapeCode)
 				if lastColorEscapeCode != tagEscapeCode {
 					s.WriteString(tagEscapeCode)
+					lastColorEscapeCode = tagEscapeCode
 				}
-				lastColorEscapeCode = tagEscapeCode
 			} else {
 				// Pop the escape code from the stack
 				ok := tryPopBack(&colorEscapeCodeStack, tagEscapeCode)
 
 				if ok {
-					// If empty stack, reset color, otherwise write most recent color
-					if len(colorEscapeCodeStack) == 0 {
-						lastColorEscapeCode = colorEscapeCodes["fg"]
-						s.WriteString(colorEscapeCodes["fg"])
-					} else {
-						topColorEscapeCode := colorEscapeCodeStack[len(colorEscapeCodeStack)-1]
-						if lastColorEscapeCode != topColorEscapeCode {
-							s.WriteString(topColorEscapeCode)
-						}
+					// write most recent color
+					topColorEscapeCode := colorEscapeCodeStack[len(colorEscapeCodeStack)-1]
+					if lastColorEscapeCode != topColorEscapeCode {
+						s.WriteString(topColorEscapeCode)
 						lastColorEscapeCode = topColorEscapeCode
 					}
 				}
@@ -251,7 +275,7 @@ func ProcessTags(input string) string {
 				decorationFlags.underline = false
 				s.WriteString(tagEscapeCode)
 			}
-		default:
+		case TagTypeUnknown:
 			/// ignore it
 		}
 
@@ -272,9 +296,9 @@ func TagString(s, tag string) string {
 }
 
 // strip format tags (NOT ansi) from line
-func StripLine(line string) string {
-	for _, tag := range slices.Backward(tagreg.FindAllStringIndex(line, -1)) {
-		line = line[:tag[0]] + line[tag[1]:]
+func StripTags(s string) string {
+	for _, tag := range slices.Backward(tagreg.FindAllStringIndex(s, -1)) {
+		s = s[:tag[0]] + s[tag[1]:]
 	}
-	return line
+	return s
 }
