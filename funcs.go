@@ -71,25 +71,6 @@ func findFirstTag(input string) (int, int, string) {
 func isOpeningTag(tagName string) bool {
 	return tagName[0] != tAG_CLOSE_MARKER
 }
-
-func validateRgbString(input string) bool {
-	if input[0] != '#' {
-		return false
-	}
-	l := len(input)
-	if l != 7 {
-		return false
-	}
-
-	for i := 1; i < l; i++ {
-		char := input[i]
-		if !(char >= 'a' && char <= 'f') && !(char >= '0' && char <= '9') {
-			return false
-		}
-	}
-
-	return true
-}
 func getRGBEscapeCode(tagName string) (string, bool) {
 	code := 38 // fg rgb
 	/// matches "bg#hexhex"
@@ -97,7 +78,7 @@ func getRGBEscapeCode(tagName string) (string, bool) {
 		tagName = tagName[2:]
 		code = 48 // bg rgb
 	}
-	if !validateRgbString(tagName) {
+	if tagName[0] != '#' {
 		return "", false
 	}
 
@@ -165,6 +146,7 @@ func getUnderlineEscapeCode(tagName string) (string, bool) {
 // this might be useful, maybe for rgb?
 // returns the ansi escape code for a tag (and its type)
 func GetTagEscapeCode(tagName string) (string, TagType) {
+	/// the order is important!
 	escapeCode, ok := getResetEscapeCode(tagName)
 	if ok {
 		return escapeCode, TagTypeReset
@@ -200,9 +182,11 @@ func ProcessTags(input string) string {
 
 	// A list of colors that have been pushed via opening tags. Closing tags will pop the most recently-pushed entry of that name from the stack
 	//
-	var colorEscapeCodeStack = []string{colorEscapeCodes["bg"], colorEscapeCodes["fg"]}
+	colorEscapeCodeStack := make([]string,2,16)
+	colorEscapeCodeStack[0] = colorEscapeCodes["bg"]
+	colorEscapeCodeStack[1] = colorEscapeCodes["fg"]
 	// The last-written color; used to prevent redundant writes
-	var lastColorEscapeCode = colorEscapeCodes["fg"]
+	lastColorEscapeCode := colorEscapeCodeStack[1]
 	// A list of "decoration flags"; used to track redundant calls to decoration flag tags
 	var decorationFlags decorationFlags
 
