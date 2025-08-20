@@ -1,4 +1,4 @@
-// ansi color tagging system similar to blessed from node
+// fast ansi color tagging system similar to blessed from node
 package oigiki
 
 import (
