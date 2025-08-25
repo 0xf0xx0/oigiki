@@ -180,9 +180,9 @@ func ProcessTags(input string) string {
 	s := strings.Builder{}
 	s.Grow(len(input))
 
-	// A list of colors that have been pushed via opening tags. Closing tags will pop the most recently-pushed entry of that name from the stack
-	//
-	colorEscapeCodeStack := make([]string,2,16)
+	// A list of colors that have been pushed via opening tags.
+	// Closing tags will pop the most recently-pushed entry of that name from the stack
+	colorEscapeCodeStack := make([]string, 2, 8)
 	colorEscapeCodeStack[0] = colorEscapeCodes["bg"]
 	colorEscapeCodeStack[1] = colorEscapeCodes["fg"]
 	// The last-written color; used to prevent redundant writes
@@ -210,7 +210,12 @@ func ProcessTags(input string) string {
 		switch tagType {
 		case TagTypeReset:
 			{
-				s.WriteString(tagEscapeCode)
+				/// ansi reset clears everything
+				colorEscapeCodeStack = colorEscapeCodeStack[:2]
+				if lastColorEscapeCode != tagEscapeCode {
+					s.WriteString(tagEscapeCode)
+					lastColorEscapeCode = tagEscapeCode
+				}
 			}
 		case TagTypeColor:
 			if isOpeningTag(tagName) {

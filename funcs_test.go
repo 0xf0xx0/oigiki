@@ -63,6 +63,12 @@ func TestHell(t *testing.T) {
 	log(t, str, EXPECTED)
 }
 
+func TestResetEdgeCase(t *testing.T) {
+	str := "{red}red{reset}reset{blue}blue{/blue}fg"
+	EXPECTED := "\x1b[31mred\x1b[0mreset\x1b[34mblue\x1b[39mfg\x1b[0m"
+	log(t, str, EXPECTED)
+}
+
 func TestExtraTagTerminators(t *testing.T) {
 	str := "{red}}{green}}{blue}}"
 	EXPECTED := "\x1b[31m}\x1b[32m}\x1b[34m}\x1b[0m"

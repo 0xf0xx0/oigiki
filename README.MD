@@ -1,6 +1,6 @@
 # oigiki
 
-fast ansi color tagging lib, similar to [blessed](https://github.com/chjj/blessed) from node  
+fast ansi color tagging lib, inspired by [blessed](https://github.com/chjj/blessed) from node  
 uses https://github.com/fatih/color  
 extracted from [axefetch](https://github.com/0xf0xx0/axefetch)
 
