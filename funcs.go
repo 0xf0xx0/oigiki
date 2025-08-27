@@ -1,9 +1,8 @@
-// fast ansi color tagging system similar to blessed from node
+// fast ansi color tagging lib, inspired by [blessed](https://github.com/chjj/blessed)
 package oigiki
 
 import (
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 )
@@ -278,7 +277,7 @@ func ProcessTags(input string) string {
 	return s.String()
 }
 
-// add a format tag to a string
+// prefix a string with a format tag
 func TagString(s, tag string) string {
 	if s == "" {
 		return s
@@ -287,9 +286,28 @@ func TagString(s, tag string) string {
 }
 
 // strip format tags (NOT ansi) from line
-func StripTags(s string) string {
-	for _, tag := range slices.Backward(tagreg.FindAllStringIndex(s, -1)) {
-		s = s[:tag[0]] + s[tag[1]:]
+func StripTags(input string) string {
+	/// this is basically just processTags without the processing
+	s := strings.Builder{}
+	s.Grow(len(input))
+	inputIndexStart := 0
+	for {
+		currentSubstr := input[inputIndexStart:]
+
+		// Find the indices of the start and end tag delimiters within the current substr
+		substrTagIndexStart, substrTagIndexEnd, _ := findFirstTag(currentSubstr)
+
+		if substrTagIndexStart < 0 {
+			s.WriteString(currentSubstr)
+			break
+		} else if substrTagIndexEnd < 0 {
+			return ""
+		}
+
+		/// write the preceding chars...
+		s.WriteString(currentSubstr[:substrTagIndexStart])
+		/// then jump past
+		inputIndexStart += substrTagIndexEnd + 1
 	}
-	return s
+	return s.String()
 }
