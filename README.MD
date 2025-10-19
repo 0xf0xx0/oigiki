@@ -1,8 +1,9 @@
 # oigiki
+[![Go Reference](https://pkg.go.dev/badge/github.com/0xf0xx0/oigiki.svg)](https://pkg.go.dev/github.com/0xf0xx0/oigiki)
 
 fast ansi color tagging lib, inspired by [blessed](https://github.com/chjj/blessed) from node  
 uses https://github.com/fatih/color  
-extracted from [axefetch](https://github.com/0xf0xx0/axefetch)
+extracted from [axefetch](https://github.com/0xf0xx0/axefetch) and improved
 
 ## usage
 ```go

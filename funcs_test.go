@@ -76,7 +76,7 @@ func TestExtraTagTerminators(t *testing.T) {
 }
 func TestUnterminatedTag(t *testing.T) {
 	str := "{red"
-	EXPECTED := "\x1b[0m"
+	EXPECTED := "{red\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
 func TestRandomClosingTag(t *testing.T) {
@@ -86,7 +86,7 @@ func TestRandomClosingTag(t *testing.T) {
 }
 func TestInvalidTag(t *testing.T) {
 	str := "{blue}blue{snuffleupagus}blue"
-	EXPECTED := "\x1b[34mblueblue\x1b[0m"
+	EXPECTED := "\x1b[34mblue{snuffleupagus}blue\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
 func TestRedundantTag(t *testing.T) {

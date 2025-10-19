@@ -237,6 +237,7 @@ func ProcessTags(input string) string {
 					}
 				}
 				/// otherwise ignore random closing tags
+				/// MAYBE: also add to output string?
 			}
 		case TagTypeBold:
 			// Only write escape code if we would otherwise change the state of the flag
@@ -266,7 +267,8 @@ func ProcessTags(input string) string {
 				s.WriteString(tagEscapeCode)
 			}
 		case TagTypeUnknown:
-			/// ignore it
+			/// just print it
+			s.WriteString(currentSubstr[substrTagIndexStart:substrTagIndexEnd+1])
 		}
 
 		// Jump forward in the input string to one past the closing delimiter
