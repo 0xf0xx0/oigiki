@@ -74,8 +74,8 @@ func getRGBEscapeCode(tagName string) (string, bool) {
 	code := 38 // fg rgb
 	/// matches "bg#hexhex"
 	if tagName[0] == 'b' {
-		tagName = tagName[2:]
-		code = 48 // bg rgb
+		tagName = tagName[2:] // "#hexhex"
+		code = 48 // bg rgb code
 	}
 	if tagName[0] != '#' {
 		return "", false
@@ -99,7 +99,7 @@ func getRGBEscapeCode(tagName string) (string, bool) {
 	ret.Grow(19) /// the full rgb sequence will never be longer than 19 bytes
 	ret.WriteString("\x1b[")
 	ret.WriteString(strconv.Itoa(code))
-	ret.WriteString(";2;")
+	ret.WriteString(";2;") /// its so sadd
 	ret.WriteString(strconv.Itoa(int(r)))
 	ret.WriteString(";")
 	ret.WriteString(strconv.Itoa(int(g)))
