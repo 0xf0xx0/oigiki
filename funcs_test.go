@@ -79,6 +79,11 @@ func TestUnterminatedTag(t *testing.T) {
 	EXPECTED := "{red\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
+func TestUnterminatedTag2(t *testing.T) {
+	str := "trigger{red"
+	EXPECTED := "trigger{red\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
 func TestRandomClosingTag(t *testing.T) {
 	str := "{red}red{/blue}red"
 	EXPECTED := "\x1b[31mredred\x1b[0m"

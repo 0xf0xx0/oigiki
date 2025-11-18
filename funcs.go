@@ -66,6 +66,10 @@ func findFirstTag(input string) (int, int, string) {
 	if indexTagEnd == -1 {
 		return -1, -1, ""
 	}
+	/// see TestUnterminatedTag2
+	if indexTagStart+1 >= indexTagEnd {
+		return -1, -1, ""
+	}
 
 	tagName := input[indexTagStart+1 : indexTagEnd]
 
