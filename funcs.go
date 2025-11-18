@@ -1,4 +1,7 @@
-// fast ansi color tagging lib, inspired by [blessed](https://github.com/chjj/blessed)
+// fast ansi color tagging lib, inspired by [chjj/blessed] from node
+// and using [github.com/fatih/color]
+//
+// [chjj/blessed]: https://github.com/chjj/blessed
 package oigiki
 
 import (
@@ -18,7 +21,8 @@ type decorationFlags struct {
 	italic    bool
 	bold      bool
 }
-type TagType int
+
+type TagType uint8
 
 const (
 	TagTypeUnknown TagType = iota
@@ -143,8 +147,11 @@ func getUnderlineEscapeCode(tagName string) (string, bool) {
 }
 
 // this might be useful, maybe for rgb?
-// returns the ansi escape code for a tag (and its type)
+// GetTagEscapeCode returns the ansi escape code for a tag (and its type)
 func GetTagEscapeCode(tagName string) (string, TagType) {
+	if len(tagName) == 0 {
+		return "", TagTypeUnknown
+	}
 	/// the order is important!
 	escapeCode, ok := getResetEscapeCode(tagName)
 	if ok {

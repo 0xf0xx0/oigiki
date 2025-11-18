@@ -89,6 +89,11 @@ func TestInvalidTag(t *testing.T) {
 	EXPECTED := "\x1b[34mblue{snuffleupagus}blue\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
+func TestEmptyTag(t *testing.T) {
+	str := "{blue}blue{}blue"
+	EXPECTED := "\x1b[34mblue{}blue\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
 func TestRedundantTag(t *testing.T) {
 	str := "{green}green{green}green{/green}"
 	EXPECTED := "\x1b[32mgreengreen\x1b[0m"
