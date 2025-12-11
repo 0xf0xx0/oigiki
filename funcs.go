@@ -5,6 +5,7 @@
 package oigiki
 
 import (
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -36,7 +37,10 @@ const (
 var (
 	/// matches each individual tag
 	tagreg  = regexp.MustCompile(`(\{.+?\})`)
-	NoColor = false
+	NoColor = func() bool {
+		_, x := os.LookupEnv("NO_COLOR")
+		return x
+	}()
 )
 
 func tryPopBack(slice *[]string, value string) bool {
@@ -224,72 +228,74 @@ func ProcessTags(input string) string {
 		// Write all contents in the substr prior to tag open to the output string
 		s.WriteString(currentSubstr[:substrTagIndexStart])
 
-		if !NoColor {
-			tagEscapeCode, tagType := GetTagEscapeCode(tagName)
-			switch tagType {
-			case TagTypeReset:
-				{
-					/// ansi reset clears everything
-					colorEscapeCodeStack = colorEscapeCodeStack[:2]
-					if lastColorEscapeCode != tagEscapeCode {
-						s.WriteString(tagEscapeCode)
-						lastColorEscapeCode = tagEscapeCode
-					}
-				}
-			case TagTypeColor:
-				if isOpeningTag(tagName) {
-					// Push the escape code to the stack and write it to the output if needed
-					colorEscapeCodeStack = append(colorEscapeCodeStack, tagEscapeCode)
-					if lastColorEscapeCode != tagEscapeCode {
-						s.WriteString(tagEscapeCode)
-						lastColorEscapeCode = tagEscapeCode
-					}
-				} else {
-					// Pop the escape code from the stack
-					ok := tryPopBack(&colorEscapeCodeStack, tagEscapeCode)
+		tagEscapeCode, tagType := GetTagEscapeCode(tagName)
 
-					if ok {
-						// write most recent color
-						topColorEscapeCode := colorEscapeCodeStack[len(colorEscapeCodeStack)-1]
-						if lastColorEscapeCode != topColorEscapeCode {
-							s.WriteString(topColorEscapeCode)
-							lastColorEscapeCode = topColorEscapeCode
-						}
-					}
-					/// otherwise ignore random closing tags
-					/// MAYBE: also add to output string?
+		if NoColor {
+			tagEscapeCode = ""
+		}
+		switch tagType {
+		case TagTypeReset:
+			{
+				/// ansi reset clears everything
+				colorEscapeCodeStack = colorEscapeCodeStack[:2]
+				if lastColorEscapeCode != tagEscapeCode {
+					s.WriteString(tagEscapeCode)
+					lastColorEscapeCode = tagEscapeCode
 				}
-			case TagTypeBold:
-				// Only write escape code if we would otherwise change the state of the flag
-				if isOpeningTag(tagName) && !decorationFlags.bold {
-					decorationFlags.bold = true
-					s.WriteString(tagEscapeCode)
-				} else if !isOpeningTag(tagName) && decorationFlags.bold {
-					decorationFlags.bold = false
-					s.WriteString(tagEscapeCode)
-				}
-			case TagTypeItalic:
-				// Only write escape code if we would otherwise change the state of the flag
-				if isOpeningTag(tagName) && !decorationFlags.italic {
-					decorationFlags.italic = true
-					s.WriteString(tagEscapeCode)
-				} else if !isOpeningTag(tagName) && decorationFlags.italic {
-					decorationFlags.italic = false
-					s.WriteString(tagEscapeCode)
-				}
-			case TagTypeUnderline:
-				// Only write escape code if we would otherwise change the state of the flag
-				if isOpeningTag(tagName) && !decorationFlags.underline {
-					decorationFlags.underline = true
-					s.WriteString(tagEscapeCode)
-				} else if !isOpeningTag(tagName) && decorationFlags.underline {
-					decorationFlags.underline = false
-					s.WriteString(tagEscapeCode)
-				}
-			case TagTypeUnknown:
-				/// just print it
-				s.WriteString(currentSubstr[substrTagIndexStart : substrTagIndexEnd+1])
 			}
+		case TagTypeColor:
+			if isOpeningTag(tagName) {
+				// Push the escape code to the stack and write it to the output if needed
+				colorEscapeCodeStack = append(colorEscapeCodeStack, tagEscapeCode)
+				if lastColorEscapeCode != tagEscapeCode {
+					s.WriteString(tagEscapeCode)
+					lastColorEscapeCode = tagEscapeCode
+				}
+			} else {
+				// Pop the escape code from the stack
+				ok := tryPopBack(&colorEscapeCodeStack, tagEscapeCode)
+
+				if ok {
+					// write most recent color
+					topColorEscapeCode := colorEscapeCodeStack[len(colorEscapeCodeStack)-1]
+					if lastColorEscapeCode != topColorEscapeCode {
+						s.WriteString(topColorEscapeCode)
+						lastColorEscapeCode = topColorEscapeCode
+					}
+				}
+				/// otherwise ignore random closing tags
+				/// MAYBE: also add to output string?
+			}
+		case TagTypeBold:
+			// Only write escape code if we would otherwise change the state of the flag
+			if isOpeningTag(tagName) && !decorationFlags.bold {
+				decorationFlags.bold = true
+				s.WriteString(tagEscapeCode)
+			} else if !isOpeningTag(tagName) && decorationFlags.bold {
+				decorationFlags.bold = false
+				s.WriteString(tagEscapeCode)
+			}
+		case TagTypeItalic:
+			// Only write escape code if we would otherwise change the state of the flag
+			if isOpeningTag(tagName) && !decorationFlags.italic {
+				decorationFlags.italic = true
+				s.WriteString(tagEscapeCode)
+			} else if !isOpeningTag(tagName) && decorationFlags.italic {
+				decorationFlags.italic = false
+				s.WriteString(tagEscapeCode)
+			}
+		case TagTypeUnderline:
+			// Only write escape code if we would otherwise change the state of the flag
+			if isOpeningTag(tagName) && !decorationFlags.underline {
+				decorationFlags.underline = true
+				s.WriteString(tagEscapeCode)
+			} else if !isOpeningTag(tagName) && decorationFlags.underline {
+				decorationFlags.underline = false
+				s.WriteString(tagEscapeCode)
+			}
+		case TagTypeUnknown:
+			/// just print it
+			s.WriteString(currentSubstr[substrTagIndexStart : substrTagIndexEnd+1])
 		}
 
 		// Jump forward in the input string to one past the closing delimiter
