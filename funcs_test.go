@@ -117,6 +117,30 @@ func TestTagString(t *testing.T) {
 	log(t, str, EXPECTED, true)
 }
 
+func TestNoColor(t *testing.T) {
+	oigiki.NoColor = true
+	str := oigiki.ProcessTags(oigiki.TagString("this should be plain", "red"))
+	oigiki.NoColor = false
+	EXPECTED := "this should be plain"
+	log(t, str, EXPECTED, true)
+}
+
+func FuzzTagging(f *testing.F) {
+	testcases := []string{
+		"{red}red{green}green{blue}blue",
+		"{red}{bold}boldred{/bold}red",
+		"{}invalidtag{invalidtag}{/}{ momo ompos pmo}",
+		"trigger{red",
+		"}wgwehhwg{",
+	}
+	for _, tc := range testcases {
+        f.Add(tc)
+    }
+    f.Fuzz(func(t *testing.T, a string) {
+
+    })
+}
+
 func BenchmarkProcessing(b *testing.B) {
 	str := "{red}red{bold}boldred{underline}bold{green}greenunderline{/bold}{red}redunderline{/red}greenunderline{/underline}" +
 		"green{/}reset reset reset{cyan}[{yellow}{#b00b69}{/bold}#b00b69{/#b00b69}yellow]"
