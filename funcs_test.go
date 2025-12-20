@@ -4,12 +4,11 @@ import (
 	"testing"
 
 	"github.com/0xf0xx0/oigiki"
-	"github.com/fatih/color"
 )
 
 func TestMain(t *testing.T) {
 	/// just so its pipable
-	color.NoColor = false
+	oigiki.NoColor = false
 }
 func TestProcessTags(t *testing.T) {
 	str := "{red}red{green}green{blue}blue"
