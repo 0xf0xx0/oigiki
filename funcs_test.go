@@ -17,6 +17,18 @@ func TestProcessTags(t *testing.T) {
 	log(t, str, EXPECTED, false)
 }
 
+func TestNoTags(t *testing.T) {
+	str := "notags"
+	EXPECTED := "notags\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+
+func TestEmpty(t *testing.T) {
+	str := ""
+	EXPECTED := "\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+
 func TestUnset(t *testing.T) {
 	str := "{red}red{green}green{/green}red"
 	EXPECTED := "\x1b[31mred\x1b[32mgreen\x1b[31mred\x1b[0m"
@@ -47,19 +59,25 @@ func TestRGB(t *testing.T) {
 	log(t, str, EXPECTED, false)
 }
 func TestBG(t *testing.T) {
-	str := "{black}{bgred}oi{bggreen}gi{bgblue}ki{/}{yellow}!"
-	EXPECTED := "\x1b[30m\x1b[41moi\x1b[42mgi\x1b[44mki\x1b[0m\x1b[33m!\x1b[0m"
+	str := "{white}{bgred}oi{black}{bggreen}gi{white}{bgblue}ki{/}{yellow}!"
+	EXPECTED := "\x1b[37m\x1b[41moi\x1b[30m\x1b[42mgi\x1b[37m\x1b[44mki\x1b[0m\x1b[33m!\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
 func TestRGBBG(t *testing.T) {
-	str := "{#000000}{bg#ff0000}oi{bg#00ff00}gi{bg#0000ff}ki{/}{#ffff00}!"
-	EXPECTED := "\x1b[38;2;0;0;0m\x1b[48;2;255;0;0moi\x1b[48;2;0;255;0mgi\x1b[48;2;0;0;255mki\x1b[0m\x1b[38;2;255;255;0m!\x1b[0m"
+	str := "{#ffffff}{bg#ff0000}oi{#000000}{bg#00ff00}gi{#ffffff}{bg#0000ff}ki{/}{#ffff00}!"
+	EXPECTED := "\x1b[38;2;255;255;255m\x1b[48;2;255;0;0moi\x1b[38;2;0;0;0m\x1b[48;2;0;255;0mgi\x1b[38;2;255;255;255m\x1b[48;2;0;0;255mki\x1b[0m\x1b[38;2;255;255;0m!\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
 
 func TestHell(t *testing.T) {
 	str := "{red}red{bold}boldred{underline}boldredunderline{/bold}redunderline{/red}fgunderline{/underline}"
 	EXPECTED := "\x1b[31mred\x1b[1mboldred\x1b[4mboldredunderline\x1b[22mredunderline\x1b[39mfgunderline\x1b[24m\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+
+func TestEmptyColorStack(t *testing.T) {
+	str := "{/bg}{/fg}{/blue}"
+	EXPECTED := "\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
 
@@ -90,8 +108,8 @@ func TestRandomClosingTag(t *testing.T) {
 	log(t, str, EXPECTED, false)
 }
 func TestInvalidTag(t *testing.T) {
-	str := "{blue}blue{snuffleupagus}blue"
-	EXPECTED := "\x1b[34mblue{snuffleupagus}blue\x1b[0m"
+	str := "{blue}blue{snuffleupagus}blue{}"
+	EXPECTED := "\x1b[34mblue{snuffleupagus}blue{}\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
 func TestEmptyTag(t *testing.T) {
@@ -116,12 +134,70 @@ func TestTagString(t *testing.T) {
 	EXPECTED := "{red}this should be red"
 	log(t, str, EXPECTED, true)
 }
+func TestTagEmptyString(t *testing.T) {
+	str := oigiki.TagString("", "red")
+	EXPECTED := ""
+	log(t, str, EXPECTED, true)
+}
+
+func TestGetCode(t *testing.T) {
+	str, tag := oigiki.GetTagEscapeCode("bold")
+	if str != "\x1b[1m" || tag != oigiki.TagTypeBold {
+		t.Fatalf("bold isnt bold (str: %q, tag: %d)", str, tag)
+	}
+
+	str, tag = oigiki.GetTagEscapeCode("italic")
+	if str != "\x1b[3m" || tag != oigiki.TagTypeItalic {
+		t.Fatalf("italic isnt italic (str: %q, tag: %d)", str, tag)
+	}
+
+	str, tag = oigiki.GetTagEscapeCode("underline")
+	if str != "\x1b[4m" || tag != oigiki.TagTypeUnderline {
+		t.Fatalf("underline isnt underline (str: %q, tag: %d)", str, tag)
+	}
+
+	str, tag = oigiki.GetTagEscapeCode("red")
+	if str != "\x1b[31m" || tag != oigiki.TagTypeColor {
+		t.Fatalf("red isnt red (str: %q, tag: %d)", str, tag)
+	}
+
+	str, tag = oigiki.GetTagEscapeCode("#ff00ff")
+	if str != "\x1b[38;2;255;0;255m" || tag != oigiki.TagTypeColor {
+		t.Fatalf("rgb isnt rgb (str: %q, tag: %d)", str, tag)
+	}
+
+	str, tag = oigiki.GetTagEscapeCode("bg#ff00ff")
+	if str != "\x1b[48;2;255;0;255m" || tag != oigiki.TagTypeColor {
+		t.Fatalf("bg rgb isnt bg rgb (str: %q, tag: %d)", str, tag)
+	}
+
+
+	str, tag = oigiki.GetTagEscapeCode("#LL00ff")
+	if str != "" || tag != oigiki.TagTypeUnknown {
+		t.Fatalf("invalid rgb should be invalid (furst byte) (str: %q, tag: %d)", str, tag)
+	}
+
+	str, tag = oigiki.GetTagEscapeCode("#ffLLff")
+	if str != "" || tag != oigiki.TagTypeUnknown {
+		t.Fatalf("invalid rgb should be invalid (second byte) (str: %q, tag: %d)", str, tag)
+	}
+
+	str, tag = oigiki.GetTagEscapeCode("#ff00LL")
+	if str != "" || tag != oigiki.TagTypeUnknown {
+		t.Fatalf("invalid rgb should be invalid (third byte) (str: %q, tag: %d)", str, tag)
+	}
+
+	str, tag = oigiki.GetTagEscapeCode("")
+	if str != "" || tag != oigiki.TagTypeUnknown {
+		t.Fatalf("the empty tag should be unknown (str: %q, tag: %d)", str, tag)
+	}
+}
 
 func TestNoColor(t *testing.T) {
 	oigiki.NoColor = true
-	str := oigiki.ProcessTags(oigiki.TagString("this should be plain", "red"))
+	str := oigiki.ProcessTags("{red}this {italic}should{/italic} be plain")
 	oigiki.NoColor = false
-	EXPECTED := "this should be plain"
+	EXPECTED := "this \x1b[3mshould\x1b[23m be plain\x1b[0m"
 	log(t, str, EXPECTED, true)
 }
 
@@ -130,6 +206,7 @@ func FuzzTagging(f *testing.F) {
 		"{red}red{green}green{blue}blue",
 		"{red}{bold}boldred{/bold}red",
 		"{}invalidtag{invalidtag}{/}{ momo ompos pmo}",
+		"{rwefwge{rfwgege{WGgwggeg{wgwgg}wg}wgrwgg{wwgwgr",
 		"trigger{red",
 		"}wgwehhwg{",
 	}

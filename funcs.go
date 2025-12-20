@@ -68,9 +68,6 @@ func findFirstTag(input string) (int, int, string) {
 	if indexTagEnd == 0 {
 		indexTagEnd = len(input) - 1
 	}
-	if indexTagEnd == -1 {
-		return -1, -1, ""
-	}
 	/// see TestUnterminatedTag2
 	if indexTagStart+1 >= indexTagEnd {
 		return -1, -1, ""
@@ -214,8 +211,6 @@ func ProcessTags(input string) string {
 		if substrTagIndexStart < 0 {
 			s.WriteString(currentSubstr)
 			break
-		} else if substrTagIndexEnd < 0 {
-			return ""
 		}
 
 		// Write all contents in the substr prior to tag open to the output string
@@ -223,9 +218,6 @@ func ProcessTags(input string) string {
 
 		tagEscapeCode, tagType := GetTagEscapeCode(tagName)
 
-		if NoColor {
-			tagEscapeCode = ""
-		}
 		switch tagType {
 		case TagTypeReset:
 			{
@@ -237,6 +229,9 @@ func ProcessTags(input string) string {
 				}
 			}
 		case TagTypeColor:
+			if NoColor {
+				tagEscapeCode = ""
+			}
 			if isOpeningTag(tagName) {
 				// Push the escape code to the stack and write it to the output if needed
 				colorEscapeCodeStack = append(colorEscapeCodeStack, tagEscapeCode)
@@ -248,9 +243,10 @@ func ProcessTags(input string) string {
 				// Pop the escape code from the stack
 				ok := tryPopBack(&colorEscapeCodeStack, tagEscapeCode)
 
-				if ok {
+				stackLen := len(colorEscapeCodeStack)
+				if ok && stackLen > 0 {
 					// write most recent color
-					topColorEscapeCode := colorEscapeCodeStack[len(colorEscapeCodeStack)-1]
+					topColorEscapeCode := colorEscapeCodeStack[stackLen-1]
 					if lastColorEscapeCode != topColorEscapeCode {
 						s.WriteString(topColorEscapeCode)
 						lastColorEscapeCode = topColorEscapeCode
@@ -295,9 +291,8 @@ func ProcessTags(input string) string {
 		inputIndexStart += substrTagIndexEnd + 1
 	}
 
-	if !NoColor {
-		s.WriteString(eSCAPE_CODE_RESET)
-	}
+	s.WriteString(eSCAPE_CODE_RESET)
+
 	return s.String()
 }
 
@@ -324,8 +319,6 @@ func StripTags(input string) string {
 		if substrTagIndexStart < 0 {
 			s.WriteString(currentSubstr)
 			break
-		} else if substrTagIndexEnd < 0 {
-			return ""
 		}
 
 		/// write the preceding chars...
