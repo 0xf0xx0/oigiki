@@ -190,13 +190,6 @@ func GetTagEscapeCode(tagName string) (string, TagType) {
 	return "", TagTypeUnknown
 }
 
-func noColor() {
-	NoColor = true
-}
-func YesColor() {
-	NoColor = false
-}
-
 // process a tagged string into ansi
 func ProcessTags(input string) string {
 	s := strings.Builder{}
