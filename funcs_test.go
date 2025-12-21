@@ -74,16 +74,6 @@ func TestUnsetOverlap(t *testing.T) {
 	EXPECTED := "\x1b[32mgreen\x1b[1mboldgreen\x1b[34m\x1b[22mblue\x1b[4mblueunderline\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
-func TestUnsetEdge(t *testing.T) {
-	str := "{green}green{blue}blue{yellow}yellow{/green}{bggreen}green{/bggreen}yellow{/blue}yellow"
-	EXPECTED := "\x1b[32mgreen\x1b[34mblue\x1b[33myellow\x1b[42mgreen\x1b[49myellowyellow\x1b[0m"
-	log(t, str, EXPECTED, false)
-}
-func TestUnsetEdge2(t *testing.T) {
-	str := "{bggreen}green{blue}blue{yellow}yellow{/}reset{bgblue}blue"
-	EXPECTED := "\x1b[42mgreen\x1b[34mblue\x1b[33myellow\x1b[0mreset\x1b[44mblue\x1b[0m"
-	log(t, str, EXPECTED, false)
-}
 
 /// edge cases
 
@@ -149,6 +139,19 @@ func TestUnterminatedTag2(t *testing.T) {
 	EXPECTED := "trigger{red\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
+
+func TestUnsetEdge(t *testing.T) {
+	str := "{green}green{blue}blue{yellow}yellow{/green}{bggreen}green{/bggreen}yellow{/blue}yellow"
+	EXPECTED := "\x1b[32mgreen\x1b[34mblue\x1b[33myellow\x1b[42mgreen\x1b[49myellowyellow\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+func TestResetEdge(t *testing.T) {
+	str := "{bggreen}green{blue}blue{yellow}yellow{/}reset{bgblue}blue"
+	EXPECTED := "\x1b[42mgreen\x1b[34mblue\x1b[33myellow\x1b[0mreset\x1b[44mblue\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+
+
 func TestRandomClosingTag(t *testing.T) {
 	str := "{red}red{/blue}red"
 	EXPECTED := "\x1b[31mredred\x1b[0m"
@@ -248,6 +251,7 @@ func FuzzTagging(f *testing.F) {
 		"{rwefwge{rfwgege{WGgwggeg{wgwgg}wg}wgrwgg{wwgwgr",
 		"trigger{red",
 		"}wgwehhwg{",
+		"{{{{{{{{{}{{{{}}}}}}}{{{{{{}}}{{{{{{{{{{{{{{}{}{{{{{{{{{{{}{}{{{}}}}{{{{}{}{",
 	}
 	for _, tc := range testcases {
 		f.Add(tc)
