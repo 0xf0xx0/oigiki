@@ -10,11 +10,50 @@ func TestMain(t *testing.T) {
 	/// just so its pipable
 	oigiki.NoColor = false
 }
-func TestProcessTags(t *testing.T) {
+func TestFG(t *testing.T) {
 	str := "{red}red{green}green{blue}blue"
 	EXPECTED := "\x1b[31mred\x1b[32mgreen\x1b[34mblue\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
+func TestBG(t *testing.T) {
+	str := "{white}{bgred}oi{black}{bggreen}gi{white}{bgblue}ki{/}{yellow}!"
+	EXPECTED := "\x1b[37m\x1b[41moi\x1b[30m\x1b[42mgi\x1b[37m\x1b[44mki\x1b[0m\x1b[33m!\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+
+func TestTruecolor(t *testing.T) {
+	str := "{#b00b69}#b00b69{/#b00b69}"
+	EXPECTED := "\x1b[38;2;176;11;105m#b00b69\x1b[39m\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+func TestTruecolorBG(t *testing.T) {
+	str := "{#ffffff}{bg#ff0000}oi{#000000}{bg#00ff00}gi{#ffffff}{bg#0000ff}ki{/}{#ffff00}!"
+	EXPECTED := "\x1b[38;2;255;255;255m\x1b[48;2;255;0;0moi\x1b[38;2;0;0;0m\x1b[48;2;0;255;0mgi\x1b[38;2;255;255;255m\x1b[48;2;0;0;255mki\x1b[0m\x1b[38;2;255;255;0m!\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+
+func TestUnset(t *testing.T) {
+	str := "{red}red{green}green{/green}red"
+	EXPECTED := "\x1b[31mred\x1b[32mgreen\x1b[31mred\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+func TestUnsetNesting(t *testing.T) {
+	str := "{red}red{green}{blue}{underline}blue{/underline}{/green}{/red}blue"
+	EXPECTED := "\x1b[31mred\x1b[32m\x1b[34m\x1b[4mblue\x1b[24mblue\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+func TestUnsetToDefault(t *testing.T) {
+	str := "{red}red{blue}blue{/blue}red{/red}default"
+	EXPECTED := "\x1b[31mred\x1b[34mblue\x1b[31mred\x1b[39mdefault\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+func TestUnsetOverlap(t *testing.T) {
+	str := "{green}green{bold}boldgreen{blue}{/bold}blue{underline}blueunderline"
+	EXPECTED := "\x1b[32mgreen\x1b[1mboldgreen\x1b[34m\x1b[22mblue\x1b[4mblueunderline\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+
+/// edge cases
 
 func TestNoTags(t *testing.T) {
 	str := "notags"
@@ -28,43 +67,14 @@ func TestEmpty(t *testing.T) {
 	log(t, str, EXPECTED, false)
 }
 
-func TestUnset(t *testing.T) {
-	str := "{red}red{green}green{/green}red"
-	EXPECTED := "\x1b[31mred\x1b[32mgreen\x1b[31mred\x1b[0m"
+func TestEmptyTag(t *testing.T) {
+	str := "{blue}blue{}blue"
+	EXPECTED := "\x1b[34mblue{}blue\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
-
-func TestUnsetNesting(t *testing.T) {
-	str := "{red}red{green}{blue}{underline}blue{/underline}{/green}{/red}blue"
-	EXPECTED := "\x1b[31mred\x1b[32m\x1b[34m\x1b[4mblue\x1b[24mblue\x1b[0m"
-	log(t, str, EXPECTED, false)
-}
-
-func TestDefaultUnset(t *testing.T) {
-	str := "{red}red{blue}blue{/blue}red{/red}default"
-	EXPECTED := "\x1b[31mred\x1b[34mblue\x1b[31mred\x1b[39mdefault\x1b[0m"
-	log(t, str, EXPECTED, false)
-}
-
-func TestOverlap(t *testing.T) {
-	str := "{green}green{bold}boldgreen{blue}{/bold}blue{underline}blueunderline"
-	EXPECTED := "\x1b[32mgreen\x1b[1mboldgreen\x1b[34m\x1b[22mblue\x1b[4mblueunderline\x1b[0m"
-	log(t, str, EXPECTED, false)
-}
-
-func TestRGB(t *testing.T) {
-	str := "{#b00b69}#b00b69{/#b00b69}"
-	EXPECTED := "\x1b[38;2;176;11;105m#b00b69\x1b[39m\x1b[0m"
-	log(t, str, EXPECTED, false)
-}
-func TestBG(t *testing.T) {
-	str := "{white}{bgred}oi{black}{bggreen}gi{white}{bgblue}ki{/}{yellow}!"
-	EXPECTED := "\x1b[37m\x1b[41moi\x1b[30m\x1b[42mgi\x1b[37m\x1b[44mki\x1b[0m\x1b[33m!\x1b[0m"
-	log(t, str, EXPECTED, false)
-}
-func TestRGBBG(t *testing.T) {
-	str := "{#ffffff}{bg#ff0000}oi{#000000}{bg#00ff00}gi{#ffffff}{bg#0000ff}ki{/}{#ffff00}!"
-	EXPECTED := "\x1b[38;2;255;255;255m\x1b[48;2;255;0;0moi\x1b[38;2;0;0;0m\x1b[48;2;0;255;0mgi\x1b[38;2;255;255;255m\x1b[48;2;0;0;255mki\x1b[0m\x1b[38;2;255;255;0m!\x1b[0m"
+func TestInvalidTag(t *testing.T) {
+	str := "{blue}blue{snuffleupagus}blue"
+	EXPECTED := "\x1b[34mblue{snuffleupagus}blue\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
 
@@ -83,6 +93,12 @@ func TestEmptyColorStack(t *testing.T) {
 func TestResetEdgeCase(t *testing.T) {
 	str := "{red}red{reset}reset{blue}blue{/blue}fg"
 	EXPECTED := "\x1b[31mred\x1b[0mreset\x1b[34mblue\x1b[39mfg\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+
+func TestExtraTagOpeners(t *testing.T) {
+	str := "{{red}{{green}{{blue}{"
+	EXPECTED := "{{red}{{green}{{blue}{\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
 
@@ -106,21 +122,14 @@ func TestRandomClosingTag(t *testing.T) {
 	EXPECTED := "\x1b[31mredred\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
-func TestInvalidTag(t *testing.T) {
-	str := "{blue}blue{snuffleupagus}blue{}"
-	EXPECTED := "\x1b[34mblue{snuffleupagus}blue{}\x1b[0m"
-	log(t, str, EXPECTED, false)
-}
-func TestEmptyTag(t *testing.T) {
-	str := "{blue}blue{}blue"
-	EXPECTED := "\x1b[34mblue{}blue\x1b[0m"
-	log(t, str, EXPECTED, false)
-}
+
 func TestRedundantTag(t *testing.T) {
 	str := "{green}green{green}green{/green}"
 	EXPECTED := "\x1b[32mgreengreen\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
+
+/// other funcs
 
 func TestStripTag(t *testing.T) {
 	str := oigiki.StripTags("{red}red{green}green{blue}blue")
@@ -170,7 +179,6 @@ func TestGetCode(t *testing.T) {
 		t.Fatalf("bg rgb isnt bg rgb (str: %q, tag: %d)", str, tag)
 	}
 
-
 	str, tag = oigiki.GetTagEscapeCode("#LL00ff")
 	if str != "" || tag != oigiki.TagTypeUnknown {
 		t.Fatalf("invalid rgb should be invalid (furst byte) (str: %q, tag: %d)", str, tag)
@@ -210,11 +218,11 @@ func FuzzTagging(f *testing.F) {
 		"}wgwehhwg{",
 	}
 	for _, tc := range testcases {
-        f.Add(tc)
-    }
-    f.Fuzz(func(t *testing.T, a string) {
+		f.Add(tc)
+	}
+	f.Fuzz(func(t *testing.T, a string) {
 
-    })
+	})
 }
 
 func BenchmarkProcessing(b *testing.B) {
