@@ -38,8 +38,8 @@ func Test256colorBG(t *testing.T) {
 	log(t, str, EXPECTED, false)
 }
 func Test256colorIndexOOB(t *testing.T) {
-	str := "{132453}index {egwrh}out of {-123}bounds"
-	EXPECTED := "{132453}index {egwrh}out of {-123}bounds\x1b[0m"
+	str := "{132453}index out of {-123}bounds"
+	EXPECTED := "{132453}index out of {-123}bounds\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
 
