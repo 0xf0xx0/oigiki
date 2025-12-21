@@ -220,13 +220,16 @@ func ProcessTags(input string) string {
 
 	// A list of colors that have been pushed via opening tags.
 	// Closing tags will pop the most recently-pushed entry of that name from the relevant stack
-	colorEscapeCodeStack := make([]string, 1, 8)
-	bgColorEscapeCodeStack := make([]string, 1, 8)
-	colorEscapeCodeStack[0] = colorEscapeCodes["fg"]
-	bgColorEscapeCodeStack[0] = colorEscapeCodes["bg"]
+	fgColorStack := make([]string, 1, 8)
+	bgColorStack := make([]string, 1, 8)
+
+	fgColorStack[0] = colorEscapeCodes["fg"]
+	bgColorStack[0] = colorEscapeCodes["bg"]
+
 	// The last-written color; used to prevent redundant writes
-	lastColorEscapeCode := colorEscapeCodeStack[0]
-	bgLastColorEscapeCode := bgColorEscapeCodeStack[0]
+	lastFgColor := fgColorStack[0]
+	lastBgColor := bgColorStack[0]
+
 	// A list of "decoration flags"; used to track redundant calls to decoration flag tags
 	var decorationFlags decorationFlags
 
@@ -250,15 +253,15 @@ func ProcessTags(input string) string {
 		case TagTypeReset:
 			{
 				/// ansi reset clears everything
-				colorEscapeCodeStack = colorEscapeCodeStack[:1]
-				bgColorEscapeCodeStack = bgColorEscapeCodeStack[:1]
+				fgColorStack = fgColorStack[:1]
+				bgColorStack = bgColorStack[:1]
 
-				if lastColorEscapeCode != tagEscapeCode {
+				if lastFgColor != tagEscapeCode {
 					s.WriteString(tagEscapeCode)
-					lastColorEscapeCode = tagEscapeCode
-				} else if bgLastColorEscapeCode != tagEscapeCode {
+					lastFgColor = tagEscapeCode
+				} else if lastBgColor != tagEscapeCode {
 					s.WriteString(tagEscapeCode)
-					bgLastColorEscapeCode = tagEscapeCode
+					lastBgColor = tagEscapeCode
 				}
 			}
 		case TagTypeColor:
@@ -266,11 +269,11 @@ func ProcessTags(input string) string {
 				tagEscapeCode = ""
 			}
 			if isOpeningTag(tagName) {
-				stack := &colorEscapeCodeStack
-				lastColor := &lastColorEscapeCode
+				stack := &fgColorStack
+				lastColor := &lastFgColor
 				if strings.HasPrefix(tagName, "bg") {
-					stack = &bgColorEscapeCodeStack
-					lastColor = &bgLastColorEscapeCode
+					stack = &bgColorStack
+					lastColor = &lastBgColor
 				}
 				// Push the escape code to the stack and write it to the output if needed
 				*stack = append(*stack, tagEscapeCode)
@@ -279,11 +282,11 @@ func ProcessTags(input string) string {
 					*lastColor = tagEscapeCode
 				}
 			} else {
-				stack := &colorEscapeCodeStack
-				lastColor := &lastColorEscapeCode
+				stack := &fgColorStack
+				lastColor := &lastFgColor
 				if strings.HasPrefix(tagName, "/bg") {
-					stack = &bgColorEscapeCodeStack
-					lastColor = &bgLastColorEscapeCode
+					stack = &bgColorStack
+					lastColor = &lastBgColor
 				}
 				// Pop the escape code from the stack
 				ok := tryPopBack(stack, tagEscapeCode)
