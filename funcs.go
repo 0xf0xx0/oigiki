@@ -252,17 +252,17 @@ func ProcessTags(input string) string {
 		switch tagType {
 		case TagTypeReset:
 			{
-				/// ansi reset clears everything
+				/// reset internal state
 				fgColorStack = fgColorStack[:1]
 				bgColorStack = bgColorStack[:1]
 
-				if lastFgColor != tagEscapeCode {
-					s.WriteString(tagEscapeCode)
-					lastFgColor = tagEscapeCode
-				} else if lastBgColor != tagEscapeCode {
-					s.WriteString(tagEscapeCode)
-					lastBgColor = tagEscapeCode
-				}
+				fgColorStack[0] = colorEscapeCodes["fg"]
+				bgColorStack[0] = colorEscapeCodes["bg"]
+
+				lastFgColor = fgColorStack[0]
+				lastBgColor = bgColorStack[0]
+
+				s.WriteString(tagEscapeCode)
 			}
 		case TagTypeColor:
 			if NoColor {
