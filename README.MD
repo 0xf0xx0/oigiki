@@ -7,6 +7,7 @@ extracted from [axefetch](https://github.com/0xf0xx0/axefetch) and improved
 ## features
 - [`NO_COLOR`](https://no-color.org/) support
 - all 16 colors (normal + bright)
+- 256color (as index, 0-255)
 - truecolor (as rrrggbb hex)
 
 ## usage
@@ -19,6 +20,12 @@ oigiki.ProcessTags("{red}red {totallyrealcolor}still red") /// "\x1b[31mred {tot
 
 oigiki.TagString("this should be red", "red") /// "{red}this should be red"
 oigiki.StripTags("{red}{bold}whos that {bg#f100f1}{underline}knockin{/underline} at my door?") /// whos that knockin at my door?
+```
+
+### 256color
+
+```go
+"{bg0}{7}yin{bg7}{0}yang"
 ```
 
 ### truecolor

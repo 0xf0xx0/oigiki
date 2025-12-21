@@ -79,7 +79,28 @@ func findFirstTag(input string) (int, int, string) {
 func isOpeningTag(tagName string) bool {
 	return tagName[0] != tAG_CLOSE_MARKER
 }
-func getRGBEscapeCode(tagName string) (string, bool) {
+func get256colorEscapeCode(tagName string) (string, bool) {
+	code := 38 // fg rgb
+	/// matches "bg<number>"
+	if tagName[0] == 'b' {
+		tagName = tagName[2:] // "<number>"
+		code = 48             // bg rgb code
+	}
+	num, err := strconv.Atoi(tagName)
+	if err != nil || num < 0 || num > 255 {
+		/// i dont like that the error is gobbled but oh well
+		return "", false
+	}
+	ret := strings.Builder{}
+	ret.Grow(11)
+	ret.WriteString("\x1b[")
+	ret.WriteString(strconv.Itoa(code))
+	ret.WriteString(";5;")
+	ret.WriteString(strconv.Itoa(num))
+	ret.WriteString("m")
+	return ret.String(), true
+}
+func getTruecolorEscapeCode(tagName string) (string, bool) {
 	code := 38 // fg rgb
 	/// matches "bg#hexhex"
 	if tagName[0] == 'b' {
@@ -135,7 +156,13 @@ func getColorEscapeCode(tagName string) (string, bool) {
 	}
 
 	// Try RGB
-	escapeCode, ok = getRGBEscapeCode(tagName)
+	escapeCode, ok = getTruecolorEscapeCode(tagName)
+	if ok {
+		return escapeCode, ok
+	}
+
+	/// and try 256color
+	escapeCode, ok = get256colorEscapeCode(tagName)
 	return escapeCode, ok
 }
 func getItalicEscapeCode(tagName string) (string, bool) {

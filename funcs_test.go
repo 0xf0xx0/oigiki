@@ -21,6 +21,28 @@ func TestBG(t *testing.T) {
 	log(t, str, EXPECTED, false)
 }
 
+func TestMixedFGBG(t *testing.T) {
+	str := "{bgblack}{white}mixed {bgblue}bg{/bgblue} and {bgyellow}{black}fg"
+	EXPECTED := "\x1b[40m\x1b[37mmixed \x1b[44mbg\x1b[40m and \x1b[43m\x1b[30mfg\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+
+func Test256color(t *testing.T) {
+	str := "{1}van {2}two {3}three, ah ah ah"
+	EXPECTED := "\x1b[38;5;1mvan \x1b[38;5;2mtwo \x1b[38;5;3mthree, ah ah ah\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+func Test256colorBG(t *testing.T) {
+	str := "{bg0}{28}she bg on my {bg4}fg{/bg4} till i {bg3}wg"
+	EXPECTED := "\x1b[48;5;0m\x1b[38;5;28mshe bg on my \x1b[48;5;4mfg\x1b[48;5;0m till i \x1b[48;5;3mwg\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+func Test256colorIndexOOB(t *testing.T) {
+	str := "{132453}index out of {-123}bounds"
+	EXPECTED := "{132453}index out of {-123}bounds\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+
 func TestTruecolor(t *testing.T) {
 	str := "{#b00b69}#b00b69{/#b00b69}"
 	EXPECTED := "\x1b[38;2;176;11;105m#b00b69\x1b[39m\x1b[0m"
