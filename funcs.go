@@ -1,7 +1,8 @@
-// fast ansi color tagging lib, inspired by [chjj/blessed] from node
+// fast ansi color tagging lib, inspired by [blessed] from node
 // and using [github.com/fatih/color]
 //
-// [chjj/blessed]: https://github.com/chjj/blessed
+//
+// [blessed]: https://github.com/chjj/blessed
 package oigiki
 
 import (
