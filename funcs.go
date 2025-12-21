@@ -1,6 +1,4 @@
-// fast ansi color tagging lib, inspired by [blessed] from node
-// and using [github.com/fatih/color]
-//
+// Package oigiki is a fast ansi color tagging lib, inspired by [blessed] from node.
 //
 // [blessed]: https://github.com/chjj/blessed
 package oigiki
@@ -11,11 +9,24 @@ import (
 	"strings"
 )
 
-const tAG_DELIM_OPEN = '{'
-const tAG_DELIM_CLOSE = '}'
-const tAG_CLOSE_MARKER = '/'
+// Set to true to force-disable color, or false to force-enable.
+// By default, it respects [NO_COLOR].
+//
+// [NO_COLOR]: https://no-color.org
+var NoColor = func() bool {
+	v, x := os.LookupEnv("NO_COLOR")
+	/// "Command-line software which adds ANSI color to its output by default
+	/// should check for a `NO_COLOR` environment variable that, when present
+	/// and not an empty string (regardless of its value), prevents the addition of ANSI color."
+	return x && v != ""
+}()
 
-const eSCAPE_CODE_RESET = "\x1b[0m"
+const (
+	tAG_DELIM_OPEN = '{'
+	tAG_DELIM_CLOSE = '}'
+	tAG_CLOSE_MARKER = '/'
+)
+
 
 type decorationFlags struct {
 	underline bool
@@ -23,6 +34,7 @@ type decorationFlags struct {
 	bold      bool
 }
 
+// TagType is an enum of ansi tag types.
 type TagType uint8
 
 const (
@@ -34,14 +46,205 @@ const (
 	TagTypeUnderline
 )
 
-var NoColor = func() bool {
-	v, x := os.LookupEnv("NO_COLOR")
-	/// https://no-color.org/
-	/// "Command-line software which adds ANSI color to its output by default
-	/// should check for a `NO_COLOR` environment variable that, when present
-	/// and not an empty string (regardless of its value), prevents the addition of ANSI color."
-	return x && v != ""
-}()
+// GetTagEscapeCode returns the ansi escape code for a tag (and its type).
+// Mainly useful for 256- and Truecolor.
+func GetTagEscapeCode(tagName string) (string, TagType) {
+	if len(tagName) == 0 {
+		return "", TagTypeUnknown
+	}
+	/// the order is important!
+	escapeCode, ok := getResetEscapeCode(tagName)
+	if ok {
+		return escapeCode, TagTypeReset
+	}
+
+	escapeCode, ok = getColorEscapeCode(tagName)
+	if ok {
+		return escapeCode, TagTypeColor
+	}
+
+	escapeCode, ok = getBoldEscapeCode(tagName)
+	if ok {
+		return escapeCode, TagTypeBold
+	}
+
+	escapeCode, ok = getItalicEscapeCode(tagName)
+	if ok {
+		return escapeCode, TagTypeItalic
+	}
+
+	escapeCode, ok = getUnderlineEscapeCode(tagName)
+	if ok {
+		return escapeCode, TagTypeUnderline
+	}
+
+	return "", TagTypeUnknown
+}
+
+// ProcessTags processes a tagged input string.
+func ProcessTags(input string) string {
+	ret := strings.Builder{}
+	ret.Grow(len(input))
+
+	// A list of colors that have been pushed via opening tags.
+	// Closing tags will pop the most recently-pushed entry of that name from the relevant stack
+	fgColorStack := make([]string, 1, 8)
+	bgColorStack := make([]string, 1, 8)
+
+	fgColorStack[0] = colorEscapeCodes["fg"]
+	bgColorStack[0] = colorEscapeCodes["bg"]
+
+	// The last-written color; used to prevent redundant writes
+	lastFgColor := fgColorStack[0]
+	lastBgColor := bgColorStack[0]
+
+	// A list of "decoration flags"; used to track redundant calls to decoration flag tags
+	var decorationFlags decorationFlags
+
+	inputIndexStart := 0
+	for {
+		currentSubstr := input[inputIndexStart:]
+
+		// Find the indices of the start and end tag delimiters within the current substr
+		substrTagIndexStart, substrTagIndexEnd, tagName := findFirstTag(currentSubstr)
+		if substrTagIndexStart < 0 {
+			ret.WriteString(currentSubstr)
+			break
+		}
+
+		// Write all contents in the substr prior to tag open to the output string
+		ret.WriteString(currentSubstr[:substrTagIndexStart])
+
+		tagEscapeCode, tagType := GetTagEscapeCode(tagName)
+
+		switch tagType {
+		case TagTypeReset:
+			{
+				/// reset internal state
+				fgColorStack = fgColorStack[:1]
+				bgColorStack = bgColorStack[:1]
+
+				fgColorStack[0] = colorEscapeCodes["fg"]
+				bgColorStack[0] = colorEscapeCodes["bg"]
+
+				lastFgColor = fgColorStack[0]
+				lastBgColor = bgColorStack[0]
+
+				ret.WriteString(tagEscapeCode)
+			}
+		case TagTypeColor:
+			if NoColor {
+				tagEscapeCode = ""
+			}
+			if isOpeningTag(tagName) {
+				stack := &fgColorStack
+				lastColor := &lastFgColor
+				if strings.HasPrefix(tagName, "bg") {
+					stack = &bgColorStack
+					lastColor = &lastBgColor
+				}
+				// Push the escape code to the stack and write it to the output if needed
+				*stack = append(*stack, tagEscapeCode)
+				if *lastColor != tagEscapeCode {
+					ret.WriteString(tagEscapeCode)
+					*lastColor = tagEscapeCode
+				}
+			} else {
+				stack := &fgColorStack
+				lastColor := &lastFgColor
+				if strings.HasPrefix(tagName, "/bg") {
+					stack = &bgColorStack
+					lastColor = &lastBgColor
+				}
+				// Pop the escape code from the stack
+				ok := tryPopBack(stack, tagEscapeCode)
+
+				stackLen := len(*stack)
+				if ok && stackLen > 0 {
+					// write most recent color
+					topColorEscapeCode := (*stack)[stackLen-1]
+					if *lastColor != topColorEscapeCode {
+						ret.WriteString(topColorEscapeCode)
+						*lastColor = topColorEscapeCode
+					}
+				}
+				/// otherwise ignore random closing tags
+				/// MAYBE: also add to output string?
+			}
+		case TagTypeBold:
+			// Only write escape code if we would otherwise change the state of the flag
+			if isOpeningTag(tagName) && !decorationFlags.bold {
+				decorationFlags.bold = true
+				ret.WriteString(tagEscapeCode)
+			} else if !isOpeningTag(tagName) && decorationFlags.bold {
+				decorationFlags.bold = false
+				ret.WriteString(tagEscapeCode)
+			}
+		case TagTypeItalic:
+			// Only write escape code if we would otherwise change the state of the flag
+			if isOpeningTag(tagName) && !decorationFlags.italic {
+				decorationFlags.italic = true
+				ret.WriteString(tagEscapeCode)
+			} else if !isOpeningTag(tagName) && decorationFlags.italic {
+				decorationFlags.italic = false
+				ret.WriteString(tagEscapeCode)
+			}
+		case TagTypeUnderline:
+			// Only write escape code if we would otherwise change the state of the flag
+			if isOpeningTag(tagName) && !decorationFlags.underline {
+				decorationFlags.underline = true
+				ret.WriteString(tagEscapeCode)
+			} else if !isOpeningTag(tagName) && decorationFlags.underline {
+				decorationFlags.underline = false
+				ret.WriteString(tagEscapeCode)
+			}
+		case TagTypeUnknown:
+			/// just print it
+			ret.WriteString(currentSubstr[substrTagIndexStart : substrTagIndexEnd+1])
+		}
+
+		// Jump forward in the input string to one past the closing delimiter
+		inputIndexStart += substrTagIndexEnd + 1
+	}
+
+	ret.WriteString("\x1b[0m")
+
+	return ret.String()
+}
+
+// TagString prefixes a string with the specified format tag.
+func TagString(input, tag string) string {
+	if input == "" || tag == "" {
+		return input
+	}
+	return "{" + tag + "}" + input
+}
+
+// StripTags strips format tags (NOT ansi) from the input.
+func StripTags(input string) string {
+	/// this is basically just processTags without the processing
+	s := strings.Builder{}
+	s.Grow(len(input))
+	inputIndexStart := 0
+	for {
+		currentSubstr := input[inputIndexStart:]
+
+		// Find the indices of the start and end tag delimiters within the current substr
+		substrTagIndexStart, substrTagIndexEnd, _ := findFirstTag(currentSubstr)
+
+		if substrTagIndexStart < 0 {
+			s.WriteString(currentSubstr)
+			break
+		}
+
+		/// write the preceding chars...
+		s.WriteString(currentSubstr[:substrTagIndexStart])
+		/// then jump past
+		inputIndexStart += substrTagIndexEnd + 1
+	}
+	return s.String()
+}
+
 
 func tryPopBack(slice *[]string, value string) bool {
 	if len(*slice) < 1 {
@@ -79,6 +282,13 @@ func findFirstTag(input string) (int, int, string) {
 }
 func isOpeningTag(tagName string) bool {
 	return tagName[0] != tAG_CLOSE_MARKER
+}
+func getResetEscapeCode(tagName string) (string, bool) {
+	if tagName == "/" || tagName == "reset" {
+		return "\x1b[0m", true
+	} else {
+		return "", false
+	}
 }
 func get256colorEscapeCode(tagName string) (string, bool) {
 	code := 38 // fg rgb
@@ -139,13 +349,6 @@ func getTruecolorEscapeCode(tagName string) (string, bool) {
 	ret.WriteString("m")
 	return ret.String(), true
 }
-func getResetEscapeCode(tagName string) (string, bool) {
-	if tagName == "/" || tagName == "reset" {
-		return eSCAPE_CODE_RESET, true
-	} else {
-		return "", false
-	}
-}
 func getColorEscapeCode(tagName string) (string, bool) {
 	if tagName[0] == '/' {
 		tagName = tagName[1:]
@@ -156,7 +359,7 @@ func getColorEscapeCode(tagName string) (string, bool) {
 		return escapeCode, ok
 	}
 
-	// Try RGB
+	// Try Truecolor
 	escapeCode, ok = getTruecolorEscapeCode(tagName)
 	if ok {
 		return escapeCode, ok
@@ -177,203 +380,4 @@ func getBoldEscapeCode(tagName string) (string, bool) {
 func getUnderlineEscapeCode(tagName string) (string, bool) {
 	escapeCode, ok := underlineEscapeCodes[tagName]
 	return escapeCode, ok
-}
-
-// this might be useful, maybe for rgb?
-// GetTagEscapeCode returns the ansi escape code for a tag (and its type)
-func GetTagEscapeCode(tagName string) (string, TagType) {
-	if len(tagName) == 0 {
-		return "", TagTypeUnknown
-	}
-	/// the order is important!
-	escapeCode, ok := getResetEscapeCode(tagName)
-	if ok {
-		return escapeCode, TagTypeReset
-	}
-
-	escapeCode, ok = getColorEscapeCode(tagName)
-	if ok {
-		return escapeCode, TagTypeColor
-	}
-
-	escapeCode, ok = getBoldEscapeCode(tagName)
-	if ok {
-		return escapeCode, TagTypeBold
-	}
-
-	escapeCode, ok = getItalicEscapeCode(tagName)
-	if ok {
-		return escapeCode, TagTypeItalic
-	}
-
-	escapeCode, ok = getUnderlineEscapeCode(tagName)
-	if ok {
-		return escapeCode, TagTypeUnderline
-	}
-
-	return "", TagTypeUnknown
-}
-
-// process a tagged string into ansi
-func ProcessTags(input string) string {
-	s := strings.Builder{}
-	s.Grow(len(input))
-
-	// A list of colors that have been pushed via opening tags.
-	// Closing tags will pop the most recently-pushed entry of that name from the relevant stack
-	fgColorStack := make([]string, 1, 8)
-	bgColorStack := make([]string, 1, 8)
-
-	fgColorStack[0] = colorEscapeCodes["fg"]
-	bgColorStack[0] = colorEscapeCodes["bg"]
-
-	// The last-written color; used to prevent redundant writes
-	lastFgColor := fgColorStack[0]
-	lastBgColor := bgColorStack[0]
-
-	// A list of "decoration flags"; used to track redundant calls to decoration flag tags
-	var decorationFlags decorationFlags
-
-	inputIndexStart := 0
-	for {
-		currentSubstr := input[inputIndexStart:]
-
-		// Find the indices of the start and end tag delimiters within the current substr
-		substrTagIndexStart, substrTagIndexEnd, tagName := findFirstTag(currentSubstr)
-		if substrTagIndexStart < 0 {
-			s.WriteString(currentSubstr)
-			break
-		}
-
-		// Write all contents in the substr prior to tag open to the output string
-		s.WriteString(currentSubstr[:substrTagIndexStart])
-
-		tagEscapeCode, tagType := GetTagEscapeCode(tagName)
-
-		switch tagType {
-		case TagTypeReset:
-			{
-				/// reset internal state
-				fgColorStack = fgColorStack[:1]
-				bgColorStack = bgColorStack[:1]
-
-				fgColorStack[0] = colorEscapeCodes["fg"]
-				bgColorStack[0] = colorEscapeCodes["bg"]
-
-				lastFgColor = fgColorStack[0]
-				lastBgColor = bgColorStack[0]
-
-				s.WriteString(tagEscapeCode)
-			}
-		case TagTypeColor:
-			if NoColor {
-				tagEscapeCode = ""
-			}
-			if isOpeningTag(tagName) {
-				stack := &fgColorStack
-				lastColor := &lastFgColor
-				if strings.HasPrefix(tagName, "bg") {
-					stack = &bgColorStack
-					lastColor = &lastBgColor
-				}
-				// Push the escape code to the stack and write it to the output if needed
-				*stack = append(*stack, tagEscapeCode)
-				if *lastColor != tagEscapeCode {
-					s.WriteString(tagEscapeCode)
-					*lastColor = tagEscapeCode
-				}
-			} else {
-				stack := &fgColorStack
-				lastColor := &lastFgColor
-				if strings.HasPrefix(tagName, "/bg") {
-					stack = &bgColorStack
-					lastColor = &lastBgColor
-				}
-				// Pop the escape code from the stack
-				ok := tryPopBack(stack, tagEscapeCode)
-
-				stackLen := len(*stack)
-				if ok && stackLen > 0 {
-					// write most recent color
-					topColorEscapeCode := (*stack)[stackLen-1]
-					if *lastColor != topColorEscapeCode {
-						s.WriteString(topColorEscapeCode)
-						*lastColor = topColorEscapeCode
-					}
-				}
-				/// otherwise ignore random closing tags
-				/// MAYBE: also add to output string?
-			}
-		case TagTypeBold:
-			// Only write escape code if we would otherwise change the state of the flag
-			if isOpeningTag(tagName) && !decorationFlags.bold {
-				decorationFlags.bold = true
-				s.WriteString(tagEscapeCode)
-			} else if !isOpeningTag(tagName) && decorationFlags.bold {
-				decorationFlags.bold = false
-				s.WriteString(tagEscapeCode)
-			}
-		case TagTypeItalic:
-			// Only write escape code if we would otherwise change the state of the flag
-			if isOpeningTag(tagName) && !decorationFlags.italic {
-				decorationFlags.italic = true
-				s.WriteString(tagEscapeCode)
-			} else if !isOpeningTag(tagName) && decorationFlags.italic {
-				decorationFlags.italic = false
-				s.WriteString(tagEscapeCode)
-			}
-		case TagTypeUnderline:
-			// Only write escape code if we would otherwise change the state of the flag
-			if isOpeningTag(tagName) && !decorationFlags.underline {
-				decorationFlags.underline = true
-				s.WriteString(tagEscapeCode)
-			} else if !isOpeningTag(tagName) && decorationFlags.underline {
-				decorationFlags.underline = false
-				s.WriteString(tagEscapeCode)
-			}
-		case TagTypeUnknown:
-			/// just print it
-			s.WriteString(currentSubstr[substrTagIndexStart : substrTagIndexEnd+1])
-		}
-
-		// Jump forward in the input string to one past the closing delimiter
-		inputIndexStart += substrTagIndexEnd + 1
-	}
-
-	s.WriteString(eSCAPE_CODE_RESET)
-
-	return s.String()
-}
-
-// prefix a string with a format tag
-func TagString(s, tag string) string {
-	if s == "" {
-		return s
-	}
-	return "{" + tag + "}" + s
-}
-
-// strip format tags (NOT ansi) from line
-func StripTags(input string) string {
-	/// this is basically just processTags without the processing
-	s := strings.Builder{}
-	s.Grow(len(input))
-	inputIndexStart := 0
-	for {
-		currentSubstr := input[inputIndexStart:]
-
-		// Find the indices of the start and end tag delimiters within the current substr
-		substrTagIndexStart, substrTagIndexEnd, _ := findFirstTag(currentSubstr)
-
-		if substrTagIndexStart < 0 {
-			s.WriteString(currentSubstr)
-			break
-		}
-
-		/// write the preceding chars...
-		s.WriteString(currentSubstr[:substrTagIndexStart])
-		/// then jump past
-		inputIndexStart += substrTagIndexEnd + 1
-	}
-	return s.String()
 }
