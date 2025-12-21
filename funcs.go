@@ -6,7 +6,6 @@ package oigiki
 
 import (
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -34,14 +33,14 @@ const (
 	TagTypeUnderline
 )
 
-var (
-	/// matches each individual tag
-	tagreg  = regexp.MustCompile(`(\{.+?\})`)
-	NoColor = func() bool {
-		_, x := os.LookupEnv("NO_COLOR")
-		return x
-	}()
-)
+var NoColor = func() bool {
+	v, x := os.LookupEnv("NO_COLOR")
+	/// https://no-color.org/
+	/// "Command-line software which adds ANSI color to its output by default
+	/// should check for a `NO_COLOR` environment variable that, when present
+	/// and not an empty string (regardless of its value), prevents the addition of ANSI color."
+	return x && v != ""
+}()
 
 func tryPopBack(slice *[]string, value string) bool {
 	if len(*slice) < 1 {
