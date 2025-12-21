@@ -38,8 +38,8 @@ func Test256colorBG(t *testing.T) {
 	log(t, str, EXPECTED, false)
 }
 func Test256colorIndexOOB(t *testing.T) {
-	str := "{132453}index out of {-123}bounds"
-	EXPECTED := "{132453}index out of {-123}bounds\x1b[0m"
+	str := "{132453}index {egwrh}out of {-123}bounds"
+	EXPECTED := "{132453}index {egwrh}out of {-123}bounds\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
 
@@ -72,6 +72,16 @@ func TestUnsetToDefault(t *testing.T) {
 func TestUnsetOverlap(t *testing.T) {
 	str := "{green}green{bold}boldgreen{blue}{/bold}blue{underline}blueunderline"
 	EXPECTED := "\x1b[32mgreen\x1b[1mboldgreen\x1b[34m\x1b[22mblue\x1b[4mblueunderline\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+func TestUnsetEdge(t *testing.T) {
+	str := "{green}green{blue}blue{yellow}yellow{/green}{bggreen}green{/bggreen}yellow{/blue}yellow"
+	EXPECTED := "\x1b[32mgreen\x1b[34mblue\x1b[33myellow\x1b[42mgreen\x1b[49myellowyellow\x1b[0m"
+	log(t, str, EXPECTED, false)
+}
+func TestUnsetEdge2(t *testing.T) {
+	str := "{bggreen}green{blue}blue{yellow}yellow{/}reset{bgblue}blue"
+	EXPECTED := "\x1b[42mgreen\x1b[34mblue\x1b[33myellow\x1b[0mreset\x1b[44mblue\x1b[0m"
 	log(t, str, EXPECTED, false)
 }
 

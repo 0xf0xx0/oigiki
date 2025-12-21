@@ -219,12 +219,14 @@ func ProcessTags(input string) string {
 	s.Grow(len(input))
 
 	// A list of colors that have been pushed via opening tags.
-	// Closing tags will pop the most recently-pushed entry of that name from the stack
-	colorEscapeCodeStack := make([]string, 2, 8)
-	colorEscapeCodeStack[0] = colorEscapeCodes["bg"]
-	colorEscapeCodeStack[1] = colorEscapeCodes["fg"]
+	// Closing tags will pop the most recently-pushed entry of that name from the relevant stack
+	colorEscapeCodeStack := make([]string, 1, 8)
+	bgColorEscapeCodeStack := make([]string, 1, 8)
+	colorEscapeCodeStack[0] = colorEscapeCodes["fg"]
+	bgColorEscapeCodeStack[0] = colorEscapeCodes["bg"]
 	// The last-written color; used to prevent redundant writes
-	lastColorEscapeCode := colorEscapeCodeStack[1]
+	lastColorEscapeCode := colorEscapeCodeStack[0]
+	bgLastColorEscapeCode := bgColorEscapeCodeStack[0]
 	// A list of "decoration flags"; used to track redundant calls to decoration flag tags
 	var decorationFlags decorationFlags
 
@@ -248,10 +250,15 @@ func ProcessTags(input string) string {
 		case TagTypeReset:
 			{
 				/// ansi reset clears everything
-				colorEscapeCodeStack = colorEscapeCodeStack[:2]
+				colorEscapeCodeStack = colorEscapeCodeStack[:1]
+				bgColorEscapeCodeStack = bgColorEscapeCodeStack[:1]
+
 				if lastColorEscapeCode != tagEscapeCode {
 					s.WriteString(tagEscapeCode)
 					lastColorEscapeCode = tagEscapeCode
+				} else if bgLastColorEscapeCode != tagEscapeCode {
+					s.WriteString(tagEscapeCode)
+					bgLastColorEscapeCode = tagEscapeCode
 				}
 			}
 		case TagTypeColor:
@@ -259,23 +266,35 @@ func ProcessTags(input string) string {
 				tagEscapeCode = ""
 			}
 			if isOpeningTag(tagName) {
+				stack := &colorEscapeCodeStack
+				lastColor := &lastColorEscapeCode
+				if strings.HasPrefix(tagName, "bg") {
+					stack = &bgColorEscapeCodeStack
+					lastColor = &bgLastColorEscapeCode
+				}
 				// Push the escape code to the stack and write it to the output if needed
-				colorEscapeCodeStack = append(colorEscapeCodeStack, tagEscapeCode)
-				if lastColorEscapeCode != tagEscapeCode {
+				*stack = append(*stack, tagEscapeCode)
+				if *lastColor != tagEscapeCode {
 					s.WriteString(tagEscapeCode)
-					lastColorEscapeCode = tagEscapeCode
+					*lastColor = tagEscapeCode
 				}
 			} else {
+				stack := &colorEscapeCodeStack
+				lastColor := &lastColorEscapeCode
+				if strings.HasPrefix(tagName, "/bg") {
+					stack = &bgColorEscapeCodeStack
+					lastColor = &bgLastColorEscapeCode
+				}
 				// Pop the escape code from the stack
-				ok := tryPopBack(&colorEscapeCodeStack, tagEscapeCode)
+				ok := tryPopBack(stack, tagEscapeCode)
 
-				stackLen := len(colorEscapeCodeStack)
+				stackLen := len(*stack)
 				if ok && stackLen > 0 {
 					// write most recent color
-					topColorEscapeCode := colorEscapeCodeStack[stackLen-1]
-					if lastColorEscapeCode != topColorEscapeCode {
+					topColorEscapeCode := (*stack)[stackLen-1]
+					if *lastColor != topColorEscapeCode {
 						s.WriteString(topColorEscapeCode)
-						lastColorEscapeCode = topColorEscapeCode
+						*lastColor = topColorEscapeCode
 					}
 				}
 				/// otherwise ignore random closing tags
