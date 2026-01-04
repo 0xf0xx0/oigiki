@@ -10,23 +10,30 @@ import (
 )
 
 // Set to true to force-disable color, or false to force-enable.
-// By default, it respects [NO_COLOR].
+// By default, it respects [NO_COLOR] and [FORCE_COLOR].
 //
 // [NO_COLOR]: https://no-color.org
+// [FORCE_COLOR]: https://force-color.org
 var NoColor = func() bool {
-	v, x := os.LookupEnv("NO_COLOR")
+	no_color, _ := os.LookupEnv("NO_COLOR")
+	force_color, _ := os.LookupEnv("FORCE_COLOR")
 	/// "Command-line software which adds ANSI color to its output by default
 	/// should check for a `NO_COLOR` environment variable that, when present
 	/// and not an empty string (regardless of its value), prevents the addition of ANSI color."
-	return x && v != ""
+	//
+	/// "Command-line software which outputs colored text
+	/// should check for a FORCE_COLOR environment variable. When this variable is present
+	/// and not an empty string (regardless of its value), it should force the addition of ANSI color."
+	//
+	/// so basically NoColor = true if NO_COLOR && !FORCE_COLOR
+	return (no_color != "") && !(force_color != "")
 }()
 
 const (
-	tAG_DELIM_OPEN = '{'
-	tAG_DELIM_CLOSE = '}'
+	tAG_DELIM_OPEN   = '{'
+	tAG_DELIM_CLOSE  = '}'
 	tAG_CLOSE_MARKER = '/'
 )
-
 
 type decorationFlags struct {
 	underline bool
@@ -244,7 +251,6 @@ func StripTags(input string) string {
 	}
 	return s.String()
 }
-
 
 func tryPopBack(slice *[]string, value string) bool {
 	if len(*slice) < 1 {
