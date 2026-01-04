@@ -3,7 +3,7 @@ package oigiki_test
 import (
 	"testing"
 
-	"github.com/0xf0xx0/oigiki"
+	"git.0xf0xx0.eth.limo/0xf0xx0/oigiki"
 )
 
 func TestMain(t *testing.T) {

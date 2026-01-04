@@ -1,5 +1,5 @@
 # oigiki
-[![Go Reference](https://pkg.go.dev/badge/github.com/0xf0xx0/oigiki.svg)](https://pkg.go.dev/github.com/0xf0xx0/oigiki)
+[![Go Reference](https://pkg.go.dev/badge/git.0xf0xx0.eth.limo/0xf0xx0/oigiki.svg)](https://pkg.go.dev/git.0xf0xx0.eth.limo/0xf0xx0/oigiki)
 
 fast ansi color tagging lib, inspired by [blessed](https://github.com/chjj/blessed) from node   
 extracted from [axefetch](https://github.com/0xf0xx0/axefetch) and improved  
@@ -10,6 +10,12 @@ minimum go version: 1.10
 - all 16 colors (normal + bright)
 - 256color (as index, 0-255)
 - truecolor (as rrrggbb hex)
+
+## import
+
+```sh
+go get git.0xf0xx0.eth.limo/0xf0xx0/oigiki
+```
 
 ## usage
 ```go
