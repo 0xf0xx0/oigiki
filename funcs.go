@@ -143,8 +143,9 @@ func ProcessTags(input string) string {
 			}
 		case TagTypeColor:
 			if NoColor {
-				tagEscapeCode = ""
+				break
 			}
+
 			if isOpeningTag(tagName) {
 				stack := &fgColorStack
 				lastColor := &lastFgColor
