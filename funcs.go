@@ -10,11 +10,11 @@ import (
 )
 
 // Set to true to force-disable color, or false to force-enable.
-// By default, it respects [NO_COLOR], [FORCE_COLOR], and [CLICOLOR].
+// By default, it respects [NO_COLOR], [FORCE_COLOR], and [CLICOLOR_FORCE].
 //
 // [NO_COLOR]: https://no-color.org
 // [FORCE_COLOR]: https://force-color.org
-// [CLICOLOR]: https://bixense.com/clicolors/
+// [CLICOLOR_FORCE]: https://bixense.com/clicolors/
 var NoColor = func() bool {
 	no_color, _ := os.LookupEnv("NO_COLOR")
 	force_color, _ := os.LookupEnv("FORCE_COLOR")
