@@ -146,13 +146,15 @@ func ProcessTags(input string) string {
 				break
 			}
 
+			/// select active stack
+			stack := &fgColorStack
+			lastColor := &lastFgColor
+			if strings.HasPrefix(tagName, "bg") || strings.HasPrefix(tagName, "/bg") {
+				stack = &bgColorStack
+				lastColor = &lastBgColor
+			}
+
 			if isOpeningTag(tagName) {
-				stack := &fgColorStack
-				lastColor := &lastFgColor
-				if strings.HasPrefix(tagName, "bg") {
-					stack = &bgColorStack
-					lastColor = &lastBgColor
-				}
 				// Push the escape code to the stack and write it to the output if needed
 				*stack = append(*stack, tagEscapeCode)
 				if *lastColor != tagEscapeCode {
@@ -160,16 +162,10 @@ func ProcessTags(input string) string {
 					*lastColor = tagEscapeCode
 				}
 			} else {
-				stack := &fgColorStack
-				lastColor := &lastFgColor
-				if strings.HasPrefix(tagName, "/bg") {
-					stack = &bgColorStack
-					lastColor = &lastBgColor
-				}
 				// Pop the escape code from the stack
 				ok := tryPopBack(stack, tagEscapeCode)
-
 				stackLen := len(*stack)
+
 				if ok && stackLen > 0 {
 					// write most recent color
 					topColorEscapeCode := (*stack)[stackLen-1]
@@ -292,6 +288,7 @@ func findFirstTag(input string) (int, int, string) {
 func isOpeningTag(tagName string) bool {
 	return tagName[0] != tAG_CLOSE_MARKER
 }
+
 func getResetEscapeCode(tagName string) (string, bool) {
 	if tagName == "/" || tagName == "reset" {
 		return "\x1b[0m", true
