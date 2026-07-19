@@ -219,7 +219,8 @@ func ProcessTags(input string) string {
 	return ret.String()
 }
 
-// ProcessTagsFast is a faster version of ProcessTags that ignores reset tags.
+// ProcessTagsFast is a faster version of ProcessTags that ignores reset tags
+// and skips redundant tag handling.
 func ProcessTagsFast(input string) string {
 	ret := strings.Builder{}
 	ret.Grow(len(input))
@@ -376,15 +377,15 @@ func getTruecolorEscapeCode(tagName string) (string, bool) {
 		return "", false
 	}
 
-	r, ok := hexToDecimal[lowerHexByte(tagName[1:3])]
+	r, ok := hexToDecimal[string(lowerHexByte([]byte(tagName[1:3])))]
 	if !ok {
 		return "", false
 	}
-	g, ok := hexToDecimal[lowerHexByte(tagName[3:5])]
+	g, ok := hexToDecimal[string(lowerHexByte([]byte(tagName[3:5])))]
 	if !ok {
 		return "", false
 	}
-	b, ok := hexToDecimal[lowerHexByte(tagName[5:7])]
+	b, ok := hexToDecimal[string(lowerHexByte([]byte(tagName[5:7])))]
 	if !ok {
 		return "", false
 	}

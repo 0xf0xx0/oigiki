@@ -35,9 +35,8 @@ var hexToDecimal = map[string]string{
 	"f8": "248", "f9": "249", "fa": "250", "fb": "251", "fc": "252", "fd": "253", "fe": "254", "ff": "255",
 }
 
-func lowerHexByte(s string) string {
-	b := []byte(s)
+func lowerHexByte(b []byte) []byte {
 	b[0] |= 0x20
 	b[1] |= 0x20
-	return string(b)
+	return b
 }
