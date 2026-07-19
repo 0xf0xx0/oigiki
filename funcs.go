@@ -67,11 +67,6 @@ func GetTagEscapeCode(tagName string) (string, TagType) {
 		return escapeCode, TagTypeReset
 	}
 
-	escapeCode, ok = getColorEscapeCode(tagName)
-	if ok {
-		return escapeCode, TagTypeColor
-	}
-
 	escapeCode, ok = getBoldEscapeCode(tagName)
 	if ok {
 		return escapeCode, TagTypeBold
@@ -85,6 +80,12 @@ func GetTagEscapeCode(tagName string) (string, TagType) {
 	escapeCode, ok = getUnderlineEscapeCode(tagName)
 	if ok {
 		return escapeCode, TagTypeUnderline
+	}
+
+	/// color is the heaviest part and must be handled last
+	escapeCode, ok = getColorEscapeCode(tagName)
+	if ok {
+		return escapeCode, TagTypeColor
 	}
 
 	return "", TagTypeUnknown
