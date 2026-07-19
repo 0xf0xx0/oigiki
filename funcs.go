@@ -218,6 +218,53 @@ func ProcessTags(input string) string {
 	return ret.String()
 }
 
+// ProcessTagsFast is a faster version of ProcessTags that ignores reset tags.
+func ProcessTagsFast(input string) string {
+	ret := strings.Builder{}
+	ret.Grow(len(input))
+
+	inputIndexStart := 0
+
+	for {
+		currentSubstr := input[inputIndexStart:]
+
+		// Find the indices of the start and end tag delimiters within the current substr
+		substrTagIndexStart, substrTagIndexEnd, tagName := findFirstTag(currentSubstr)
+		if substrTagIndexStart < 0 {
+			ret.WriteString(currentSubstr)
+			break
+		}
+
+		// Write all contents in the substr prior to tag open to the output string
+		ret.WriteString(currentSubstr[:substrTagIndexStart])
+
+		tagEscapeCode, tagType := GetTagEscapeCode(tagName)
+
+		switch tagType {
+		case TagTypeColor:
+			if NoColor {
+				break
+			}
+
+			if isOpeningTag(tagName) {
+				ret.WriteString(tagEscapeCode)
+			}
+		case TagTypeReset, TagTypeBold, TagTypeItalic, TagTypeUnderline:
+			ret.WriteString(tagEscapeCode)
+		case TagTypeUnknown:
+			/// just print it
+			ret.WriteString(currentSubstr[substrTagIndexStart : substrTagIndexEnd+1])
+		}
+
+		// Jump forward in the input string to one past the closing delimiter
+		inputIndexStart += substrTagIndexEnd + 1
+	}
+
+	ret.WriteString("\x1b[0m")
+
+	return ret.String()
+}
+
 // TagString prefixes a string with the specified format tag.
 func TagString(input, tag string) string {
 	if input == "" || tag == "" {
@@ -313,7 +360,7 @@ func get256colorEscapeCode(tagName string) (string, bool) {
 	ret.WriteString("\x1b[")
 	ret.WriteString(strconv.Itoa(code))
 	ret.WriteString(";5;")
-	ret.WriteString(strconv.Itoa(num))
+	ret.WriteString(tagName)
 	ret.WriteString("m")
 	return ret.String(), true
 }
@@ -328,16 +375,16 @@ func getTruecolorEscapeCode(tagName string) (string, bool) {
 		return "", false
 	}
 
-	r, err := strconv.ParseUint(tagName[1:3], 16, 8)
-	if err != nil {
+	r, ok := hexToDecimal[lowerHexByte(tagName[1:3])]
+	if !ok {
 		return "", false
 	}
-	g, err := strconv.ParseUint(tagName[3:5], 16, 8)
-	if err != nil {
+	g, ok := hexToDecimal[lowerHexByte(tagName[3:5])]
+	if !ok {
 		return "", false
 	}
-	b, err := strconv.ParseUint(tagName[5:7], 16, 8)
-	if err != nil {
+	b, ok := hexToDecimal[lowerHexByte(tagName[5:7])]
+	if !ok {
 		return "", false
 	}
 
@@ -347,11 +394,11 @@ func getTruecolorEscapeCode(tagName string) (string, bool) {
 	ret.WriteString("\x1b[")
 	ret.WriteString(strconv.Itoa(code))
 	ret.WriteString(";2;") /// its so sadd
-	ret.WriteString(strconv.Itoa(int(r)))
+	ret.WriteString(r)
 	ret.WriteString(";")
-	ret.WriteString(strconv.Itoa(int(g)))
+	ret.WriteString(g)
 	ret.WriteString(";")
-	ret.WriteString(strconv.Itoa(int(b)))
+	ret.WriteString(b)
 	ret.WriteString("m")
 	return ret.String(), true
 }
@@ -375,6 +422,7 @@ func getColorEscapeCode(tagName string) (string, bool) {
 	escapeCode, ok = get256colorEscapeCode(tagName)
 	return escapeCode, ok
 }
+
 func getItalicEscapeCode(tagName string) (string, bool) {
 	escapeCode, ok := italicEscapeCodes[tagName]
 	return escapeCode, ok

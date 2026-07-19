@@ -260,11 +260,18 @@ func FuzzTagging(f *testing.F) {
 	})
 }
 
-func BenchmarkProcessing(b *testing.B) {
+func BenchmarkProcessTags(b *testing.B) {
 	str := "{red}red{bold}boldred{underline}bold{green}greenunderline{/bold}{red}redunderline{/red}greenunderline{/underline}" +
 		"green{/}reset reset reset{cyan}[{yellow}{#b00b69}{/bold}#b00b69{/#b00b69}yellow]"
 	for b.Loop() {
 		oigiki.ProcessTags(str)
+	}
+}
+func BenchmarkProcessTagsFast(b *testing.B) {
+	str := "{red}red{bold}boldred{underline}bold{green}greenunderline{/bold}{red}redunderline{/red}greenunderline{/underline}" +
+		"green{/}reset reset reset{cyan}[{yellow}{#b00b69}{/bold}#b00b69{/#b00b69}yellow]"
+	for b.Loop() {
+		oigiki.ProcessTagsFast(str)
 	}
 }
 
