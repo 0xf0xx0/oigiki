@@ -36,7 +36,7 @@ var hexToDecimal = map[string]string{
 }
 
 func lowerHexByte(b []byte) []byte {
-	b[0] |= 0x20
-	b[1] |= 0x20
+	b[0] |= 32
+	b[1] |= 32
 	return b
 }
