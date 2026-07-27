@@ -322,7 +322,7 @@ func findFirstTag(input string) (int, int, string) {
 
 	indexTagEnd := strings.IndexByte(input[indexTagStart+1:], tAG_DELIM_CLOSE) + indexTagStart + 1
 	/// see TestUnterminatedTag
-	if indexTagEnd == 0 {
+	if indexTagEnd <= 0 {
 		indexTagEnd = len(input) - 1
 	}
 	/// see TestUnterminatedTag2
@@ -345,33 +345,32 @@ func getResetEscapeCode(tagName string) (string, bool) {
 		return "", false
 	}
 }
-func get256colorEscapeCode(tagName string) (string, bool) {
-	code := 38 // fg rgb
+func get256colorEscapeCode(tagName string, ret *strings.Builder) (string, bool) {
+	code := "38" // fg rgb
 	/// matches "bg<number>"
 	if tagName[0] == 'b' {
 		tagName = tagName[2:] // "<number>"
-		code = 48             // bg rgb code
+		code = "48"           // bg rgb code
 	}
 	num, err := strconv.Atoi(tagName)
 	if err != nil || num < 0 || num > 255 {
 		/// i dont like that the error is gobbled but oh well
 		return "", false
 	}
-	ret := strings.Builder{}
-	ret.Grow(11)
+
 	ret.WriteString("\x1b[")
-	ret.WriteString(strconv.Itoa(code))
+	ret.WriteString(code)
 	ret.WriteString(";5;")
 	ret.WriteString(tagName)
 	ret.WriteString("m")
 	return ret.String(), true
 }
-func getTruecolorEscapeCode(tagName string) (string, bool) {
-	code := 38 // fg rgb
+func getTruecolorEscapeCode(tagName string, ret *strings.Builder) (string, bool) {
+	code := "38" // fg rgb
 	/// matches "bg#hexhex"
 	if tagName[0] == 'b' {
 		tagName = tagName[2:] // "#hexhex"
-		code = 48             // bg rgb code
+		code = "48"           // bg rgb code
 	}
 	if tagName[0] != '#' {
 		return "", false
@@ -390,11 +389,8 @@ func getTruecolorEscapeCode(tagName string) (string, bool) {
 		return "", false
 	}
 
-	/// is this actually faster than just a printf? seems negligible
-	ret := strings.Builder{}
-	ret.Grow(19) /// the full rgb sequence will never be longer than 19 bytes
 	ret.WriteString("\x1b[")
-	ret.WriteString(strconv.Itoa(code))
+	ret.WriteString(code)
 	ret.WriteString(";2;") /// its so sadd
 	ret.WriteString(r)
 	ret.WriteString(";")
@@ -414,14 +410,19 @@ func getColorEscapeCode(tagName string) (string, bool) {
 		return escapeCode, ok
 	}
 
+	ret := strings.Builder{}
+	ret.Grow(19) /// the full rgb sequence will never be longer than 19 bytes
+
 	// Try Truecolor
-	escapeCode, ok = getTruecolorEscapeCode(tagName)
+	escapeCode, ok = getTruecolorEscapeCode(tagName, &ret)
 	if ok {
 		return escapeCode, ok
 	}
+	ret.Reset()
+	ret.Grow(11)
 
 	/// and try 256color
-	escapeCode, ok = get256colorEscapeCode(tagName)
+	escapeCode, ok = get256colorEscapeCode(tagName, &ret)
 	return escapeCode, ok
 }
 

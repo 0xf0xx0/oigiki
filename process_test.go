@@ -276,6 +276,19 @@ func log(t *testing.T, str string, EXPECTED string, skipprocess bool) {
 		processed = oigiki.ProcessTags(str)
 	}
 	t.Logf("output: %s", processed)
+	t.Logf("raw output: %q", processed)
+	if processed != EXPECTED {
+		t.Errorf("MISMATCH:\nEXP: %s %q\nGOT: %s %q", EXPECTED, EXPECTED, processed, processed)
+	}
+}
+func logFast(t *testing.T, str string, EXPECTED string, skipprocess bool) {
+	t.Logf("input: %q", str)
+	processed := str
+	if !skipprocess {
+		processed = oigiki.ProcessTagsFast(str)
+	}
+	t.Logf("output: %s", processed)
+	t.Logf("raw output: %q", processed)
 	if processed != EXPECTED {
 		t.Errorf("MISMATCH:\nEXP: %s %q\nGOT: %s %q", EXPECTED, EXPECTED, processed, processed)
 	}
