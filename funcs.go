@@ -140,6 +140,10 @@ func ProcessTags(input string) string {
 				lastFgColor = fgColorStack[0]
 				lastBgColor = bgColorStack[0]
 
+				decorationFlags.bold = false
+				decorationFlags.italic = false
+				decorationFlags.underline = false
+
 				ret.WriteString(tagEscapeCode)
 			}
 		case TagTypeColor:
